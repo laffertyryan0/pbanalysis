@@ -17,7 +17,7 @@ pb.fit <- function(formula,                    #y~x formula including model and 
   nsamp = nrow(data)
 
   #If weights, strata, psu = NULL, and survey.design not provided, we assume a simple random sample
-  if(is.null(weights) & is.null(strata) & is.null(psu) & is.null(survey.design)){
+  if((is.null(weights) | is.null(strata) | is.null(psu)) & is.null(survey.design)){
     weights = array(1,c(nsamp))
     strata = array(1,c(nsamp))
     psu = seq(1:nsamp)
@@ -83,8 +83,10 @@ pb.fit <- function(formula,                    #y~x formula including model and 
 
     #fit a ppo model on race 0, that is, data where deltaR0==1
     #requires ordinal package
+    options(warn=-1)
     mod = ordinal::clm(as.factor(y[deltaR0]) ~ cov.x[deltaR0,], nominal = ~cov.z[deltaR0,],
               weights = w[deltaR0]/mean(w[deltaR0]),link="logit")
+    options(warn=0)
 
     #define T = number of levels of ordinal response variable
     T = nlevels(as.factor(y))
@@ -132,7 +134,7 @@ pb.fit <- function(formula,                    #y~x formula including model and 
     for(j in 1:nsamp){
       d.S.d.theta = d.S.d.theta +
         w[j]*deltaR0[j]*d.phat.d.theta[j,,]%*%
-        ginv(diag(phat[j,])-phat[j,]%*%t(phat[j,]))%*%
+        (MASS::ginv)(diag(phat[j,])-phat[j,]%*%t(phat[j,]))%*%
         t(d.phat.d.theta[j,,])
     }
 
@@ -140,14 +142,14 @@ pb.fit <- function(formula,                    #y~x formula including model and 
     d.S.d.w = array(0,c(nsamp,num_params,T-1))
     for(j in 1:nsamp){
       d.S.d.w[j,,] = deltaR0[j]*
-        d.phat.d.theta[j,,]%*%ginv(diag(phat[j,])-phat[j,]%*%t(phat[j,]))%*%
+        d.phat.d.theta[j,,]%*%(MASS::ginv)(diag(phat[j,])-phat[j,]%*%t(phat[j,]))%*%
         (y_ind[j,] - phat[j,])
     }
 
     #compute d.theta.d.w = (dSdtheta)^-1 * dS.dw
     d.theta.d.w = array(0,c(nsamp,num_params,T-1))
     for(t in 1:(T-1)){
-      d.theta.d.w[,,t] = d.S.d.w[,,t]%*%ginv(d.S.d.theta)
+      d.theta.d.w[,,t] = d.S.d.w[,,t]%*%(MASS::ginv)(d.S.d.theta)
     }
 
     #compute d.phat.d.w = d.phat.d.theta times d.theta.d.w
@@ -158,44 +160,75 @@ pb.fit <- function(formula,                    #y~x formula including model and 
 
     #compute unexplained disparity and percent unexplained disparity
     pR0 = sapply(1:(T-1),function(t){sum(w*deltaR0*y_ind[,t])})/sum(w*deltaR0)
-    pRk = array(0,c(length(minority.group)))
-    phat.R0.Rk = array(0,c(length(minority.group)))
+    pRk = array(0,c(T-1,length(minority.group)))
+    phat.R0.Rk = array(0,c(T-1,length(minority.group)))
+    unexp.disp = array(0,c(T-1,length(minority.group)))
+    overall.disp = array(0,c(T-1,length(minority.group)))
 
     for(k in 1:length(minority.group)){
-      pRk[k] = sapply(1:(T-1),function(t){sum(w*deltaRk[[k]]*y_ind[,t])})/sum(w*deltaRk[[k]])
-      phat.R0.Rk[k] = sapply(1:(T-1),function(t){sum(w*deltaRk[[k]]*phat[,t])})/sum(w*deltaRk[[k]])
+      pRk[,k] = sapply(1:(T-1),function(t){sum(w*deltaRk[[k]]*y_ind[,t])})/sum(w*deltaRk[[k]])
+      phat.R0.Rk[,k] = sapply(1:(T-1),function(t){sum(w*deltaRk[[k]]*phat[,t])})/sum(w*deltaRk[[k]])
+      unexp.disp[,k] = phat.R0.Rk[,k] - pRk[,k]                           #there is one component for each minority group
+      overall.disp[,k] = pR0-pRk[,k]
     }
-    unexp.disp = phat.R0.Rk - pRk                                   #there is one component for each minority group
-    overall.disp = pR0-pR1
+
     pct.unexp = 100*(unexp.disp/overall.disp)
 
-    #compute Taylor deviates
+    #compute Taylor deviates and corresponding variances
     z = array(0,c(nsamp,T-1,length(minority.group)))
-    for(i in 1:nsamp){
+    variances = array(0,c(T-1,length(minority.group)))
+    for(k in 1:length(minority.group)){
       for(t in 1:(T-1)){
-        for(k in 1:length(minority.group)){
+        #compute z deviate here
+        for(i in 1:nsamp){
           term1 = (1/sum(w*deltaRk[[k]]))*(deltaRk[[k]][i]*(phat[i,t]-y_ind[i,t])+
                                         sum(w*deltaRk[[k]]*d.phat.d.w[,i,t]))
           term2 = -(deltaRk[[k]][i]/(sum(w*deltaRk[[k]])^2))*sum(w*deltaRk[[k]]*(phat[,t]-y_ind[,t]))
           z[i,t,k] = term1 + term2
         }
+        #end compute z deviate
+
+        #compute variance for given minority group k and ordinal level t
+        variance = 0
+        strats = unique(strata)
+        nstrat = length(strats)
+        weighted.z = w*z[,t,k]
+        for(h in 1:nstrat){
+          #th = number of psus in ith stratum
+          psus = unique(psu[strata==strats[h]])
+          th = length(psus)
+          zhi = array(0,c(th))
+          for(i in 1:th){
+            zhi[i] = sum(weighted.z[strata==strats[h] & psu == psus[i]])
+          }
+          #zhmean = mean of zhis for given h
+          #
+          variance = variance + (th/(th-1)) * sum((zhi-mean(zhi))^2)
+        }
+        variances[t,k] = variance
+        #end compute variance
+
       }
     }
+    variances = data.frame(variances)
+    colnames(variances) = minority.group
+    rownames(variances) = paste("level=", levels(as.factor(y))[1:(T-1)],sep="")
 
-    print(colSums(z[,,1]))
+    pct.unexp = data.frame(pct.unexp)
+    colnames(pct.unexp) = minority.group
+    rownames(pct.unexp) = paste("level=", levels(as.factor(y))[1:(T-1)],sep="")
 
-    print(sum(w*z[,1,1]))
-    print(sum(w*z[,2,1]))
 
+    unexp.disp = data.frame(unexp.disp)
+    colnames(unexp.disp) = minority.group
+    rownames(unexp.disp) = paste("level=", levels(as.factor(y))[1:(T-1)],sep="")
 
   }
-  return(list(pct.unexp = pct.unexp,
-                    z = z,
-                    y_ind = y_ind,
-                    cov.x = cov.x,
-                    cov.z = cov.z,
-                    y = y,
-                    pR0 = pR0))
+
+
+  return(list(percent.unexplained = pct.unexp,
+              unexplained.disp = unexp.disp,
+              unexp.disp.variance = variances))
 
 }
 
@@ -215,6 +248,8 @@ out = pb.fit(bmi_cat ~ age + age_square + pir  + insurance + phy.act + alc.consu
        weights = data$sample_weight,
        disparity.group = "race",
        majority.group = "white",
-       minority.group = "black",
+       minority.group = c("black","other"),
        prop.odds.fail = c("phy.act","alc.consump","smoke2","smoke3"),
        family = "ordinal")
+
+print(out)
