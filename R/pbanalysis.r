@@ -17,11 +17,16 @@ pb.fit <- function(formula,                    #y~x formula including model and 
   nsamp = nrow(data)
 
   #If weights, strata, psu = NULL, and survey.design not provided, we assume a simple random sample
-  if((is.null(weights) | is.null(strata) | is.null(psu)) & is.null(survey.design)){
-    weights = array(1,c(nsamp))
+  if(is.null(weights) & is.null(survey.design)){
+    weights = as.numeric(array(1,c(nsamp)))
+  }
+  if(is.null(strata) & is.null(survey.design)){
     strata = array(1,c(nsamp))
+  }
+  if(is.null(psu) & is.null(survey.design)){
     psu = seq(1:nsamp)
   }
+
   #If a survey design is provided, use that instead of data, weights, strata, psu
   #It will just overwrite all four
   if(!is.null(survey.design)){
@@ -58,6 +63,8 @@ pb.fit <- function(formula,                    #y~x formula including model and 
   cov.x = data.matrix(data[,cov.x.names])                     #again not sure why I need data.matrix
   cov.z = data.matrix(data[,prop.odds.fail])                  #R has a really complicated type system that I do
                                                               #not understand in the least
+
+
 
   #set w = weights
   w = weights                                           #just for convenience
@@ -165,6 +172,91 @@ pb.fit <- function(formula,                    #y~x formula including model and 
   }
   else if(family == "ordinal" & is.null(prop.odds.fail)){
     # DO PO MODEL HERE
+
+
+    #fit a po model on race 0, that is, data where deltaR0==1
+    #requires ordinal package
+    options(warn=-1)
+    mod = MASS::polr(as.factor(y[deltaR0]) ~ cov.x[deltaR0,],
+               weights = w[deltaR0]/mean(w[deltaR0]))
+    options(warn=0)
+
+    #define T = number of levels of ordinal response variable
+    T = nlevels(as.factor(y))
+
+    #define s = number of x covariates, r = number of z covariates, p = r + s
+    s = ncol(cov.x)
+    p = 0 + s
+
+    #size of theta vector
+    num_params = s+T-1
+
+    #extract model coefficients for alpha + beta*x + gamma*z
+    alpha = mod$zeta
+    beta = mod$coefficients
+
+    #define F[j,t] = estimate of P(y<=t|x=x_j) for jth observation
+    #F = exp(alpha + beta*x)/(1+exp(..))
+    F = sapply(1:(T-1), function(t) exp(alpha[t] - beta%*%t(cov.x)))
+    F = F/(1+F)
+
+    #define the probability estimates for each category
+    #phat[j,t] = race-0 based estimate for probability of category t
+    phat = F
+    if(T>2){
+      phat[,2:(T-1)]=sapply(2:(T-1),function(t) {F[,t]-F[,t-1]})
+    }
+
+    #define the derivative of phat with respect to parameter vector theta = (alpha,beta,gamma)
+    #see ppo model page 609. Possible typo in paper? Using own derivation instead.
+    #the names=F argument in diag just makes sure we get a 1x1 matrix output in case T=2
+    q = F*(1-F)
+    V = diag(1,T-1,T-1)
+    if(T>2){
+      for(i in c(1:(T-2))){V[i,i+1]=-1}
+    }
+    d.phat.d.theta = array(0,c(nsamp,num_params,T-1))
+    for(i in 1:nsamp){
+      d.phat.d.theta[i,,] = -rbind(
+        diag(q[i,],names=F)%*%V,
+        kronecker(q[i,]%*%V,cov.x[i,])
+      )
+    }
+
+    #Define d.S.d.theta = derivative of estimating equations with respect to theta
+    d.S.d.theta = array(0,c(num_params,num_params))
+    for(j in 1:nsamp){
+      d.S.d.theta = d.S.d.theta +
+        w[j]*deltaR0[j]*d.phat.d.theta[j,,]%*%
+        MASS::ginv(diag(phat[j,])-phat[j,]%*%t(phat[j,]))%*%
+        t(d.phat.d.theta[j,,])
+    }
+
+    #Define d.S.d.w = derivative of est. equations with respect to weight
+    d.S.d.w = array(0,c(nsamp,num_params,T-1))
+    w.d.S.d.w = array(0,c(nsamp,num_params,T-1))
+    for(j in 1:nsamp){
+      d.S.d.w[j,,] = deltaR0[j]*
+        d.phat.d.theta[j,,]%*%MASS::ginv(diag(phat[j,])-phat[j,]%*%t(phat[j,]))%*%
+        (y_ind[j,] - phat[j,])
+      w.d.S.d.w[j,,] = w[j]*d.S.d.w[j,,]
+    }
+
+    #compute d.theta.d.w = (dSdtheta)^-1 * dS.dw
+    d.theta.d.w = array(0,c(nsamp,num_params,T-1))
+    w.d.theta.d.w = array(0,c(nsamp,num_params,T-1))
+
+    for(t in 1:(T-1)){
+      d.theta.d.w[,,t] = d.S.d.w[,,t]%*%MASS::ginv(d.S.d.theta)
+      w.d.theta.d.w[,,t] = w.d.S.d.w[,,t]%*%MASS::ginv(d.S.d.theta)
+    }
+
+
+    #compute d.phat.d.w = d.phat.d.theta times d.theta.d.w
+    d.phat.d.w = array(0,c(nsamp,nsamp,T-1))
+    for(t in 1:(T-1)){
+      d.phat.d.w[,,t] = d.phat.d.theta[,,t]%*%t(d.theta.d.w[,,t])
+    }
   }
   else if(family == "multinomial"){
     # DO MULTINOMIAL MODEL HERE
@@ -256,7 +348,6 @@ pb.fit <- function(formula,                    #y~x formula including model and 
   else{
     rownames(unexp.disp) = "result"
   }
-
   return(list(percent.unexplained = pct.unexp,
               unexplained.disp = unexp.disp,
               unexp.disp.variance = variances))
@@ -274,13 +365,13 @@ data$race = array("other",c(nrow(data)))
 data$race[data$deltaR0==1] = "white"
 data$race[data$deltaR1==1] = "black"
 
-out = pb.fit(bmi_cat ~ age + age_square + pir  + insurance + phy.act + alc.consump + smoke2 + smoke3,
+out = pb.fit(bmi_cat ~ age + age_square + pir + insurance + phy.act + alc.consump + smoke2 + smoke3,
        data = data,
        weights = data$sample_weight,
        disparity.group = "race",
        majority.group = "white",
        minority.group = c("black","other"),
-       prop.odds.fail = c("phy.act","alc.consump","smoke2","smoke3"),
+       prop.odds.fail = NULL, #c("phy.act","alc.consump","smoke2","smoke3"),
        family = "ordinal")
 
 print(out)
