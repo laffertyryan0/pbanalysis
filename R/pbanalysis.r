@@ -177,15 +177,17 @@ pb.fit <- function(formula,                    #y~x formula including model and 
   #We will have T=1. In that case, don't show row names in the output
 
   #compute unexplained disparity and percent unexplained disparity
-  pR0 = sapply(1:(T-1),function(t){sum(w*deltaR0*y_ind[,t])})/sum(w*deltaR0)
-  pRk = array(0,c(T-1,length(minority.group)))
-  phat.R0.Rk = array(0,c(T-1,length(minority.group)))
-  unexp.disp = array(0,c(T-1,length(minority.group)))
-  overall.disp = array(0,c(T-1,length(minority.group)))
+  #The max(1,T-1)'s here are needed because if T=1 then R will interpret 1:(T-1) as the vector 1 0
+
+  pR0 = sapply(1:max(1,(T-1)),function(t){sum(w*deltaR0*y_ind[,t])})/sum(w*deltaR0)
+  pRk = array(0,c(max(1,(T-1)),length(minority.group)))
+  phat.R0.Rk = array(0,c(max(1,(T-1)),length(minority.group)))
+  unexp.disp = array(0,c(max(1,(T-1)),length(minority.group)))
+  overall.disp = array(0,c(max(1,(T-1)),length(minority.group)))
 
   for(k in 1:length(minority.group)){
-    pRk[,k] = sapply(1:(T-1),function(t){sum(w*deltaRk[[k]]*y_ind[,t])})/sum(w*deltaRk[[k]])
-    phat.R0.Rk[,k] = sapply(1:(T-1),function(t){sum(w*deltaRk[[k]]*phat[,t])})/sum(w*deltaRk[[k]])
+    pRk[,k] = sapply(1:max(1,(T-1)),function(t){sum(w*deltaRk[[k]]*y_ind[,t])})/sum(w*deltaRk[[k]])
+    phat.R0.Rk[,k] = sapply(1:max(1,(T-1)),function(t){sum(w*deltaRk[[k]]*phat[,t])})/sum(w*deltaRk[[k]])
     unexp.disp[,k] = phat.R0.Rk[,k] - pRk[,k]                           #there is one component for each minority group
     overall.disp[,k] = pR0-pRk[,k]
   }
@@ -196,7 +198,7 @@ pb.fit <- function(formula,                    #y~x formula including model and 
   z = array(0,c(nsamp,T-1,length(minority.group)))
   variances = array(0,c(T-1,length(minority.group)))
   for(k in 1:length(minority.group)){
-    for(t in 1:(T-1)){
+    for(t in 1:max(1,(T-1))){
       #compute z deviate here
       for(i in 1:nsamp){
         term1 = (1/sum(w*deltaRk[[k]]))*(deltaRk[[k]][i]*(phat[i,t]-y_ind[i,t])+
@@ -233,17 +235,26 @@ pb.fit <- function(formula,                    #y~x formula including model and 
   if(T>1){
     rownames(variances) = paste("level=", levels(as.factor(y))[1:(T-1)],sep="")
   }
+  else{
+    rownames(variances) = "result"
+  }
 
   pct.unexp = data.frame(pct.unexp)
   colnames(pct.unexp) = minority.group
   if(T>1){
     rownames(pct.unexp) = paste("level=", levels(as.factor(y))[1:(T-1)],sep="")
   }
+  else{
+    rownames(pct.unexp) = "result"
+  }
 
   unexp.disp = data.frame(unexp.disp)
   colnames(unexp.disp) = minority.group
   if(T>1){
     rownames(unexp.disp) = paste("level=", levels(as.factor(y))[1:(T-1)],sep="")
+  }
+  else{
+    rownames(unexp.disp) = "result"
   }
 
   return(list(percent.unexplained = pct.unexp,
@@ -262,7 +273,6 @@ data = read.csv("bmi_cat.csv")
 data$race = array("other",c(nrow(data)))
 data$race[data$deltaR0==1] = "white"
 data$race[data$deltaR1==1] = "black"
-data$bmi_cat[data$bmi_cat==3] = 1
 
 out = pb.fit(bmi_cat ~ age + age_square + pir  + insurance + phy.act + alc.consump + smoke2 + smoke3,
        data = data,
