@@ -72,7 +72,7 @@ pb.fit <- function(formula,                    #y~x formula including model and 
     }
   }
 
-  #calculate percent disparity and z deviates -- depends on which family we use
+  #calculate percent disparity and z deviates -- first part of calculation depends on which family we use
   if(family == "ordinal" & !is.null(prop.odds.fail)){
 
     #HERE IS WHERE WE DO PPO MODEL
@@ -113,19 +113,23 @@ pb.fit <- function(formula,                    #y~x formula including model and 
     #define the probability estimates for each category
     #phat[j,t] = race-0 based estimate for probability of category t
     phat = F
-    phat[,2:(T-1)]=sapply(2:(T-1),function(t) {F[,t]-F[,t-1]})
+    if(T>2){
+      phat[,2:(T-1)]=sapply(2:(T-1),function(t) {F[,t]-F[,t-1]})
+    }
 
     #define the derivative of phat with respect to parameter vector theta = (alpha,beta,gamma)
     #see ppo model page 609. Possible typo in paper? Using own derivation instead.
     q = F*(1-F)
     V = diag(1,T-1,T-1)
-    for(i in c(1:(T-2))){V[i,i+1]=-1}
+    if(T>2){
+      for(i in c(1:(T-2))){V[i,i+1]=-1}
+    }
     d.phat.d.theta = array(0,c(nsamp,num_params,T-1))
     for(i in 1:nsamp){
       d.phat.d.theta[i,,] = -rbind(
-        diag(q[i,])%*%V,
+        diag(q[i,],names=F)%*%V,
         kronecker(q[i,]%*%V,cov.x[i,]),
-        kronecker(cov.z[i,],diag(q[i,])%*%V)
+        kronecker(cov.z[i,],diag(q[i,],names=F)%*%V)
       )
     }
 
@@ -134,7 +138,7 @@ pb.fit <- function(formula,                    #y~x formula including model and 
     for(j in 1:nsamp){
       d.S.d.theta = d.S.d.theta +
         w[j]*deltaR0[j]*d.phat.d.theta[j,,]%*%
-        (MASS::ginv)(diag(phat[j,])-phat[j,]%*%t(phat[j,]))%*%
+        (MASS::ginv)(diag(phat[j,],names=F)-phat[j,]%*%t(phat[j,]))%*%
         t(d.phat.d.theta[j,,])
     }
 
@@ -142,7 +146,7 @@ pb.fit <- function(formula,                    #y~x formula including model and 
     d.S.d.w = array(0,c(nsamp,num_params,T-1))
     for(j in 1:nsamp){
       d.S.d.w[j,,] = deltaR0[j]*
-        d.phat.d.theta[j,,]%*%(MASS::ginv)(diag(phat[j,])-phat[j,]%*%t(phat[j,]))%*%
+        d.phat.d.theta[j,,]%*%(MASS::ginv)(diag(phat[j,],names=F)-phat[j,]%*%t(phat[j,]))%*%
         (y_ind[j,] - phat[j,])
     }
 
@@ -158,73 +162,89 @@ pb.fit <- function(formula,                    #y~x formula including model and 
       d.phat.d.w[,,t] = d.phat.d.theta[,,t]%*%t(d.theta.d.w[,,t])
     }
 
-    #compute unexplained disparity and percent unexplained disparity
-    pR0 = sapply(1:(T-1),function(t){sum(w*deltaR0*y_ind[,t])})/sum(w*deltaR0)
-    pRk = array(0,c(T-1,length(minority.group)))
-    phat.R0.Rk = array(0,c(T-1,length(minority.group)))
-    unexp.disp = array(0,c(T-1,length(minority.group)))
-    overall.disp = array(0,c(T-1,length(minority.group)))
-
-    for(k in 1:length(minority.group)){
-      pRk[,k] = sapply(1:(T-1),function(t){sum(w*deltaRk[[k]]*y_ind[,t])})/sum(w*deltaRk[[k]])
-      phat.R0.Rk[,k] = sapply(1:(T-1),function(t){sum(w*deltaRk[[k]]*phat[,t])})/sum(w*deltaRk[[k]])
-      unexp.disp[,k] = phat.R0.Rk[,k] - pRk[,k]                           #there is one component for each minority group
-      overall.disp[,k] = pR0-pRk[,k]
-    }
-
-    pct.unexp = 100*(unexp.disp/overall.disp)
-
-    #compute Taylor deviates and corresponding variances
-    z = array(0,c(nsamp,T-1,length(minority.group)))
-    variances = array(0,c(T-1,length(minority.group)))
-    for(k in 1:length(minority.group)){
-      for(t in 1:(T-1)){
-        #compute z deviate here
-        for(i in 1:nsamp){
-          term1 = (1/sum(w*deltaRk[[k]]))*(deltaRk[[k]][i]*(phat[i,t]-y_ind[i,t])+
-                                        sum(w*deltaRk[[k]]*d.phat.d.w[,i,t]))
-          term2 = -(deltaRk[[k]][i]/(sum(w*deltaRk[[k]])^2))*sum(w*deltaRk[[k]]*(phat[,t]-y_ind[,t]))
-          z[i,t,k] = term1 + term2
-        }
-        #end compute z deviate
-
-        #compute variance for given minority group k and ordinal level t
-        variance = 0
-        strats = unique(strata)
-        nstrat = length(strats)
-        weighted.z = w*z[,t,k]
-        for(h in 1:nstrat){
-          #th = number of psus in ith stratum
-          psus = unique(psu[strata==strats[h]])
-          th = length(psus)
-          zhi = array(0,c(th))
-          for(i in 1:th){
-            zhi[i] = sum(weighted.z[strata==strats[h] & psu == psus[i]])
-          }
-          #zhmean = mean of zhis for given h
-          #
-          variance = variance + (th/(th-1)) * sum((zhi-mean(zhi))^2)
-        }
-        variances[t,k] = variance
-        #end compute variance
-
-      }
-    }
-    variances = data.frame(variances)
-    colnames(variances) = minority.group
-    rownames(variances) = paste("level=", levels(as.factor(y))[1:(T-1)],sep="")
-
-    pct.unexp = data.frame(pct.unexp)
-    colnames(pct.unexp) = minority.group
-    rownames(pct.unexp) = paste("level=", levels(as.factor(y))[1:(T-1)],sep="")
-
-
-    unexp.disp = data.frame(unexp.disp)
-    colnames(unexp.disp) = minority.group
-    rownames(unexp.disp) = paste("level=", levels(as.factor(y))[1:(T-1)],sep="")
-
+  }
+  else if(family == "ordinal" & is.null(prop.odds.fail)){
+    # DO PO MODEL HERE
+  }
+  else if(family == "multinomial"){
+    # DO MULTINOMIAL MODEL HERE
+  }
+  else if(family == "gaussian"){
+    # DO LINEAR MODEL HERE
   }
 
+  #This part does not depend on which family we use, but note that in linear case
+  #We will have T=1. In that case, don't show row names in the output
+
+  #compute unexplained disparity and percent unexplained disparity
+  pR0 = sapply(1:(T-1),function(t){sum(w*deltaR0*y_ind[,t])})/sum(w*deltaR0)
+  pRk = array(0,c(T-1,length(minority.group)))
+  phat.R0.Rk = array(0,c(T-1,length(minority.group)))
+  unexp.disp = array(0,c(T-1,length(minority.group)))
+  overall.disp = array(0,c(T-1,length(minority.group)))
+
+  for(k in 1:length(minority.group)){
+    pRk[,k] = sapply(1:(T-1),function(t){sum(w*deltaRk[[k]]*y_ind[,t])})/sum(w*deltaRk[[k]])
+    phat.R0.Rk[,k] = sapply(1:(T-1),function(t){sum(w*deltaRk[[k]]*phat[,t])})/sum(w*deltaRk[[k]])
+    unexp.disp[,k] = phat.R0.Rk[,k] - pRk[,k]                           #there is one component for each minority group
+    overall.disp[,k] = pR0-pRk[,k]
+  }
+
+  pct.unexp = 100*(unexp.disp/overall.disp)
+
+  #compute Taylor deviates and corresponding variances
+  z = array(0,c(nsamp,T-1,length(minority.group)))
+  variances = array(0,c(T-1,length(minority.group)))
+  for(k in 1:length(minority.group)){
+    for(t in 1:(T-1)){
+      #compute z deviate here
+      for(i in 1:nsamp){
+        term1 = (1/sum(w*deltaRk[[k]]))*(deltaRk[[k]][i]*(phat[i,t]-y_ind[i,t])+
+                                           sum(w*deltaRk[[k]]*d.phat.d.w[,i,t]))
+        term2 = -(deltaRk[[k]][i]/(sum(w*deltaRk[[k]])^2))*sum(w*deltaRk[[k]]*(phat[,t]-y_ind[,t]))
+        z[i,t,k] = term1 + term2
+      }
+      #end compute z deviate
+
+      #compute variance for given minority group k and ordinal level t
+      variance = 0
+      strats = unique(strata)
+      nstrat = length(strats)
+      weighted.z = w*z[,t,k]
+      for(h in 1:nstrat){
+        #th = number of psus in ith stratum
+        psus = unique(psu[strata==strats[h]])
+        th = length(psus)
+        zhi = array(0,c(th))
+        for(i in 1:th){
+          zhi[i] = sum(weighted.z[strata==strats[h] & psu == psus[i]])
+        }
+        #zhmean = mean of zhis for given h
+        #
+        variance = variance + (th/(th-1)) * sum((zhi-mean(zhi))^2)
+      }
+      variances[t,k] = variance
+      #end compute variance
+
+    }
+  }
+  variances = data.frame(variances)
+  colnames(variances) = minority.group
+  if(T>1){
+    rownames(variances) = paste("level=", levels(as.factor(y))[1:(T-1)],sep="")
+  }
+
+  pct.unexp = data.frame(pct.unexp)
+  colnames(pct.unexp) = minority.group
+  if(T>1){
+    rownames(pct.unexp) = paste("level=", levels(as.factor(y))[1:(T-1)],sep="")
+  }
+
+  unexp.disp = data.frame(unexp.disp)
+  colnames(unexp.disp) = minority.group
+  if(T>1){
+    rownames(unexp.disp) = paste("level=", levels(as.factor(y))[1:(T-1)],sep="")
+  }
 
   return(list(percent.unexplained = pct.unexp,
               unexplained.disp = unexp.disp,
@@ -242,6 +262,7 @@ data = read.csv("bmi_cat.csv")
 data$race = array("other",c(nrow(data)))
 data$race[data$deltaR0==1] = "white"
 data$race[data$deltaR1==1] = "black"
+data$bmi_cat[data$bmi_cat==3] = 1
 
 out = pb.fit(bmi_cat ~ age + age_square + pir  + insurance + phy.act + alc.consump + smoke2 + smoke3,
        data = data,
