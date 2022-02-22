@@ -268,10 +268,9 @@ pb.fit <- function(formula,                    #y~x formula including model and 
   else if(family == "gaussian"){
     # DO LINEAR MODEL HERE
 
-    #set T = 2 here for consistency with rest of code
-    #we want T-1 = 1, that's why
-    T = 2
-
+    #set T = 1 here for consistency with rest of code
+    #we need to give it a value
+    T = 1
 
     #fit a linear model on race 0, that is, data where deltaR0==1
     mod = glm(y[deltaR0] ~ .,
@@ -364,8 +363,8 @@ pb.fit <- function(formula,                    #y~x formula including model and 
   pct.unexp = 100*(unexp.disp/overall.disp)
 
   #compute Taylor deviates and corresponding variances
-  z = array(0,c(nsamp,T-1,length(minority.group)))
-  variances = array(0,c(T-1,length(minority.group)))
+  z = array(0,c(nsamp,max(1,(T-1)),length(minority.group)))
+  variances = array(0,c(max(1,(T-1)),length(minority.group)))
   for(k in 1:length(minority.group)){
     for(t in 1:max(1,(T-1))){
       #compute z deviate here
