@@ -69,14 +69,18 @@ pb.fit <- function(formula,                    #y~x formula including model and 
   #set w = weights
   w = weights                                           #just for convenience
 
-  #if response y is ordinal, we need to make an indicator version of y
+  #if response y is ordinal or multinomial, we need to make an indicator version of y
   y_ind = array(0,c(nsamp,nlevels(as.factor(y))-1))           # this will be a matrix where columns are indicators for each level
 
-  if(family == "ordinal"){
+  if(family == "ordinal" | family == "multinomial"){
     ylevels = levels(as.factor(y))
     for(lev.num in 1:(length(ylevels))-1){                          # note here we only need length(ylevels) - 1 indicator vars
       y_ind[,lev.num] = (as.factor(y) == ylevels[lev.num]) + 0     # the + 0 is just to make sure we get numeric values not logical
     }
+  }
+  else if(family == "gaussian"){
+    #In this case, we just set to be a matrix form of y, with the t dimension only 1 element long
+    y_ind = matrix(data = y,ncol = 1)
   }
 
   #calculate percent disparity and z deviates -- first part of calculation depends on which family we use
@@ -263,6 +267,79 @@ pb.fit <- function(formula,                    #y~x formula including model and 
   }
   else if(family == "gaussian"){
     # DO LINEAR MODEL HERE
+
+    #set T = 2 here for consistency with rest of code
+    #we want T-1 = 1, that's why
+    T = 2
+
+
+    #fit a linear model on race 0, that is, data where deltaR0==1
+    mod = glm(y[deltaR0] ~ .,
+              data = data.frame(cov.x[deltaR0,]),
+              weights = w[deltaR0]
+    )
+
+
+    #define p = number of x covariates
+    p = ncol(cov.x)
+
+    #size of theta vector
+    num_params = p+1
+
+    #extract model coefficients for beta0 + beta*x
+    #beta0 is the intercept
+    #beta is the other coefficients
+    beta0 = mod$coef[1]
+    beta = mod$coef[-1]
+
+    #define phat to be the predictions yhat for y on all rows
+    #phat = yhat in this case
+    #making it a n by 1 array instead of a vector to conform with rest of code
+
+    phat = matrix(data = predict(mod,data.frame(cov.x)),ncol = 1)
+
+    #define the derivative of phat with respect to parameter vector theta = (beta0,beta)
+
+    d.phat.d.theta = array(0,c(nsamp,num_params,1))
+    for(i in 1:nsamp){
+      d.phat.d.theta[i,1,1] = 1               #first one is intercept term
+      d.phat.d.theta[i,-1,1] =  cov.x[i,]     #-1 means everything except intercept
+    }
+
+
+    #Define d.S.d.theta = derivative of estimating equations with respect to theta
+    d.S.d.theta = array(0,c(num_params,num_params))
+    for(j in 1:nsamp){
+      d.S.d.theta = d.S.d.theta +
+        w[j]*deltaR0[j]*d.phat.d.theta[j,,1]%*%t(d.phat.d.theta[j,,1])
+    }
+
+    #Define d.S.d.w = derivative of est. equations with respect to weight
+    d.S.d.w = array(0,c(nsamp,num_params,1))
+    w.d.S.d.w = array(0,c(nsamp,num_params,1))
+    for(j in 1:nsamp){
+      d.S.d.w[j,,1] = deltaR0[j]*
+        d.phat.d.theta[j,,1]*
+        (y[j] - phat[j,1])
+      w.d.S.d.w[j,,1] = w[j]*d.S.d.w[j,,1]
+    }
+
+    #compute d.theta.d.w = (dSdtheta)^-1 * dS.dw
+    d.theta.d.w = array(0,c(nsamp,num_params,T-1))
+    w.d.theta.d.w = array(0,c(nsamp,num_params,T-1))
+
+    for(t in 1:(T-1)){
+      d.theta.d.w[,,t] = d.S.d.w[,,t]%*%MASS::ginv(d.S.d.theta)
+      w.d.theta.d.w[,,t] = w.d.S.d.w[,,t]%*%MASS::ginv(d.S.d.theta)
+    }
+
+
+    #compute d.phat.d.w = d.phat.d.theta times d.theta.d.w
+    d.phat.d.w = array(0,c(nsamp,nsamp,T-1))
+    for(t in 1:(T-1)){
+      d.phat.d.w[,,t] = d.phat.d.theta[,,t]%*%t(d.theta.d.w[,,t])
+    }
+
   }
 
   #This part does not depend on which family we use, but note that in linear case
@@ -313,8 +390,6 @@ pb.fit <- function(formula,                    #y~x formula including model and 
         for(i in 1:th){
           zhi[i] = sum(weighted.z[strata==strats[h] & psu == psus[i]])
         }
-        #zhmean = mean of zhis for given h
-        #
         variance = variance + (th/(th-1)) * sum((zhi-mean(zhi))^2)
       }
       variances[t,k] = variance
@@ -360,18 +435,18 @@ pb.fit <- function(formula,                    #y~x formula including model and 
 
 
 setwd(r"(C:\Users\laffertyrm\Documents\work\PB)")
-data = read.csv("bmi_cat.csv")
+data = read.csv("bmi.csv")
 data$race = array("other",c(nrow(data)))
 data$race[data$deltaR0==1] = "white"
 data$race[data$deltaR1==1] = "black"
 
-out = pb.fit(bmi_cat ~ age + age_square + pir + insurance + phy.act + alc.consump + smoke2 + smoke3,
+out = pb.fit(bmi ~ age + age_square + pir + insurance + phy.act + alc.consump + smoke2 + smoke3,
        data = data,
        weights = data$sample_weight,
        disparity.group = "race",
        majority.group = "white",
        minority.group = c("black","other"),
        prop.odds.fail = NULL, #c("phy.act","alc.consump","smoke2","smoke3"),
-       family = "ordinal")
+       family = "gaussian")
 
 print(out)
