@@ -13,6 +13,9 @@ pb.fit <- function(formula,                    #y~x formula including model and 
                                                #assumed to meet the prop odds assumption. if it's NULL, then use regular PO model
                                                #otherwise, use PPO model with nominal = prop.odds.fail variables
                    ){
+  #number of places to round output to
+  round_places = 2
+
   #number of samples in dataset
   nsamp = nrow(data)
 
@@ -324,18 +327,18 @@ pb.fit <- function(formula,                    #y~x formula including model and 
     }
 
     #compute d.theta.d.w = (dSdtheta)^-1 * dS.dw
-    d.theta.d.w = array(0,c(nsamp,num_params,T-1))
-    w.d.theta.d.w = array(0,c(nsamp,num_params,T-1))
+    d.theta.d.w = array(0,c(nsamp,num_params,1))
+    w.d.theta.d.w = array(0,c(nsamp,num_params,1))
 
-    for(t in 1:(T-1)){
+    for(t in 1:1){
       d.theta.d.w[,,t] = d.S.d.w[,,t]%*%MASS::ginv(d.S.d.theta)
       w.d.theta.d.w[,,t] = w.d.S.d.w[,,t]%*%MASS::ginv(d.S.d.theta)
     }
 
 
     #compute d.phat.d.w = d.phat.d.theta times d.theta.d.w
-    d.phat.d.w = array(0,c(nsamp,nsamp,T-1))
-    for(t in 1:(T-1)){
+    d.phat.d.w = array(0,c(nsamp,nsamp,1))
+    for(t in 1:1){
       d.phat.d.w[,,t] = d.phat.d.theta[,,t]%*%t(d.theta.d.w[,,t])
     }
 
@@ -396,7 +399,7 @@ pb.fit <- function(formula,                    #y~x formula including model and 
 
     }
   }
-  variances = data.frame(variances)
+  variances = round(data.frame(variances),round_places)
   colnames(variances) = minority.group
   if(T>1){
     rownames(variances) = paste("level=", levels(as.factor(y))[1:(T-1)],sep="")
@@ -405,7 +408,7 @@ pb.fit <- function(formula,                    #y~x formula including model and 
     rownames(variances) = "result"
   }
 
-  pct.unexp = data.frame(pct.unexp)
+  pct.unexp = round(data.frame(pct.unexp),round_places)
   colnames(pct.unexp) = minority.group
   if(T>1){
     rownames(pct.unexp) = paste("level=", levels(as.factor(y))[1:(T-1)],sep="")
@@ -414,7 +417,7 @@ pb.fit <- function(formula,                    #y~x formula including model and 
     rownames(pct.unexp) = "result"
   }
 
-  unexp.disp = data.frame(unexp.disp)
+  unexp.disp = round(data.frame(unexp.disp),round_places)
   colnames(unexp.disp) = minority.group
   if(T>1){
     rownames(unexp.disp) = paste("level=", levels(as.factor(y))[1:(T-1)],sep="")
@@ -422,9 +425,11 @@ pb.fit <- function(formula,                    #y~x formula including model and 
   else{
     rownames(unexp.disp) = "result"
   }
+
   return(list(percent.unexplained = pct.unexp,
               unexplained.disp = unexp.disp,
-              unexp.disp.variance = variances))
+              unexp.disp.variance = variances,
+              sample.sizes = table(unname(y),data[disparity.group][,])))
 
 }
 
@@ -434,18 +439,18 @@ pb.fit <- function(formula,                    #y~x formula including model and 
 
 
 setwd(r"(C:\Users\laffertyrm\Documents\work\PB)")
-data = read.csv("bmi.csv")
+data = read.csv("bmi_cat.csv")
 data$race = array("other",c(nrow(data)))
 data$race[data$deltaR0==1] = "white"
 data$race[data$deltaR1==1] = "black"
 
-out = pb.fit(bmi ~ age + age_square + pir + insurance + phy.act + alc.consump + smoke2 + smoke3,
+out = pb.fit(bmi_cat ~ age + age_square + pir + insurance + phy.act + alc.consump + smoke2 + smoke3,
        data = data,
        weights = data$sample_weight,
        disparity.group = "race",
        majority.group = "white",
        minority.group = c("black","other"),
        prop.odds.fail = NULL, #c("phy.act","alc.consump","smoke2","smoke3"),
-       family = "gaussian")
+       family = "ordinal")
 
 print(out)
