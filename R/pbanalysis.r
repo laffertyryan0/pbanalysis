@@ -14,7 +14,7 @@ pb.fit <- function(formula,                    #y~x formula including model and 
                                                #otherwise, use PPO model with nominal = prop.odds.fail variables
                    ){
   #number of places to round output to
-  round_places = 10
+  round_places = 2
 
   #number of samples in dataset
   nsamp = nrow(data)
