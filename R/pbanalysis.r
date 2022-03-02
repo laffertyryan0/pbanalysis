@@ -9,9 +9,12 @@ pb.fit <- function(formula,                    #y~x formula including model and 
                    disparity.group="race",     #the column in data that is used to indicate race or gender (disparity group type)
                    majority.group="white",     #the name or factor that represents the majority/reference group
                    minority.group=NULL,        #A list of minority groups, or NULL meaning all non-majority
-                   prop.odds.fail = NULL       #only use this for ordinal family. specifies a vector of variable names that are NOT
+                   prop.odds.fail = NULL,      #only use this for ordinal family. specifies a vector of variable names that are NOT
                                                #assumed to meet the prop odds assumption. if it's NULL, then use regular PO model
                                                #otherwise, use PPO model with nominal = prop.odds.fail variables
+                   base.level = NULL           #only use this for multinomial family. if not set, the reference level will be the
+                                               #first level in alphabetical order. the reference level will always be included in the
+                                               #final output, so this is a way to make sure a level of interest is included
                    ){
   #number of places to round output to
   round_places = 2
@@ -41,7 +44,7 @@ pb.fit <- function(formula,                    #y~x formula including model and 
 
   #if minority.group is NULL, assume all non-majority groups will be included
   if(is.null(minority.group)){
-    minority.group = levels(as.factor(data$age[data$age!=majority.group]))
+    minority.group = levels(as.factor(data[disparity.group][data[disparity.group]!=majority.group]))
   }
 
   #set indicator variables deltaR0 for reference racial group and
@@ -57,9 +60,9 @@ pb.fit <- function(formula,                    #y~x formula including model and 
   #cov.z = all covariates that do not satisfy ppo assumption
   #don't include disparity.group covariate or response
   #creating a temporary model and extracting the variables from it
-  temp.mod = lm(formula,data=data)                       #just to extract the variable names
-  response.var.name = toString(temp.mod$terms[[2]])
-  cov.x.names = colnames(temp.mod$model)
+  frame = model.frame(formula=formula,data=data)
+  response.var.name = colnames(frame[1])
+  cov.x.names = colnames(frame[-1])
   cov.x.names = cov.x.names[cov.x.names != response.var.name] #everything in the model except the response and prop.odds.fail
   cov.x.names = cov.x.names[!cov.x.names %in% prop.odds.fail]
   y = c(data[response.var.name])[[1]]                         #not sure why I need the [[1]] but I do..
@@ -67,7 +70,13 @@ pb.fit <- function(formula,                    #y~x formula including model and 
   cov.z = data.matrix(data[,prop.odds.fail])                  #R has a really complicated type system that I do
                                                               #not understand in the least
 
-
+  #for the sake of multinomial model we employ a small trick to recognize base level
+  #add a non-alphanumeric character * to the front of whichever level is the base level
+  #since * is smaller than all letters and numbers in ascii ordering, this will force
+  #us to consider this one alphabetically first
+  if(!is.null(base.level)){
+    y[y==base.level] = paste("*",base.level,sep="")
+  }
 
   #set w = weights
   w = weights                                           #just for convenience
@@ -77,9 +86,10 @@ pb.fit <- function(formula,                    #y~x formula including model and 
 
   if(family == "ordinal" | family == "multinomial"){
     ylevels = levels(as.factor(y))
-    for(lev.num in 1:(length(ylevels))-1){                          # note here we only need length(ylevels) - 1 indicator vars
+    for(lev.num in 1:((length(ylevels))-1)){                          # note here we only need length(ylevels) - 1 indicator vars
       y_ind[,lev.num] = (as.factor(y) == ylevels[lev.num]) + 0     # the + 0 is just to make sure we get numeric values not logical
     }
+    colnames(y_ind) = ylevels[1:(length(ylevels)-1)]               #set the indicator column names -- they are the first T-1 levels
   }
   else if(family == "gaussian"){
     #In this case, we just set to be a matrix form of y, with the t dimension only 1 element long
@@ -269,17 +279,13 @@ pb.fit <- function(formula,                    #y~x formula including model and 
     # DO MULTINOMIAL MODEL HERE
 
     #define a factor version of y
-    #if the levels are numbers, relevel so that the highest level is baseline
     factor_y = as.factor(y)
-    if(is.numeric(y)){
-      factor_y = relevel(factor_y,max(as.numeric(levels(factor_y))))
-    }
 
-    #fit a po model on race 0, that is, data where deltaR0==1
+    #fit a multinomial model on race 0, that is, data where deltaR0==1
     #requires ordinal package
     options(warn=-1)
     mod = nnet::multinom(factor_y[deltaR0] ~ cov.x[deltaR0,],
-                         weights = w[deltaR0])
+                         weights = w[deltaR0],trace=F)
     options(warn=0)
 
     #define T = number of levels of ordinal response variable
@@ -307,6 +313,14 @@ pb.fit <- function(formula,                    #y~x formula including model and 
     phat.top = sapply(1:(T-1), function(t) exp(beta0[t] + beta[t,]%*%t(cov.x)))
     phat = phat.top/(1+rowSums(phat.top))
 
+    #now phat is levels[2],levels[3],...,levels[T]
+    #but we want levels[1],levels[2],...,levels[T-1]
+    phat = as.matrix(phat)  #in case only two levels
+    phat = cbind(1-rowSums(phat),phat)   #add in the missing level
+    colnames(phat) = ylevels             #now phat has all levels, so we can put all the column names there
+    phat = phat[,colnames(y_ind)]        #but we don't want all levels, just the ones that y_ind indicator has
+    phat = as.matrix(phat) #needed again... sigh.. wish R had stricter types
+    colnames(phat) = colnames(y_ind)
 
     #define the derivative of phat with respect to parameter vector theta = (beta0,beta)
     #see ppo model page 609. Possible typo in paper? Using own derivation instead.
@@ -486,10 +500,13 @@ pb.fit <- function(formula,                    #y~x formula including model and 
 
     }
   }
-  variances = round(data.frame(variances),round_places)
+
+
+  variances = signif(data.frame(variances),round_places)
   colnames(variances) = minority.group
   if(T>1){
     rownames(variances) = paste("level=", levels(as.factor(y))[1:(T-1)],sep="")
+    rownames(variances) = gsub("[*]","",rownames(variances)) #delete any * character from rownames
   }
   else{
     rownames(variances) = "result"
@@ -499,33 +516,47 @@ pb.fit <- function(formula,                    #y~x formula including model and 
   colnames(pct.unexp) = minority.group
   if(T>1){
     rownames(pct.unexp) = paste("level=", levels(as.factor(y))[1:(T-1)],sep="")
+    rownames(pct.unexp) = gsub("[*]","",rownames(pct.unexp)) #delete any * character from rownames
   }
   else{
     rownames(pct.unexp) = "result"
   }
 
-  unexp.disp = round(data.frame(unexp.disp),round_places)
+  unexp.disp = signif(data.frame(unexp.disp),round_places)
   colnames(unexp.disp) = minority.group
   if(T>1){
     rownames(unexp.disp) = paste("level=", levels(as.factor(y))[1:(T-1)],sep="")
+    rownames(unexp.disp) = gsub("[*]","",rownames(unexp.disp)) #delete any * character from rownames
   }
   else{
     rownames(unexp.disp) = "result"
+  }
+
+  overall.disp = signif(data.frame(overall.disp),round_places)
+  colnames(overall.disp) = minority.group
+  if(T>1){
+    rownames(overall.disp) = paste("level=", levels(as.factor(y))[1:(T-1)],sep="")
+    rownames(overall.disp) = gsub("[*]","",rownames(overall.disp)) #delete any * character from rownames
+  }
+  else{
+    rownames(overall.disp) = "result"
   }
 
 
   if(family == "gaussian"){
     sample.sizes = table(data[disparity.group][,])
   }else{
+    y = gsub("[*]","",y)
     sample.sizes = table(unname(y),data[disparity.group][,])
   }
 
   return(list(
               sample.sizes = sample.sizes,
 #uncomment the following lines to include observed and predicted prevalence in outputs
-#             observed = y,
-#             predicted = phat,
+             #observed = y_ind,
+             #predicted = phat,
               percent.unexplained = pct.unexp,
+              overall.disp = overall.disp,
               unexplained.disp = unexp.disp,
               unexp.disp.variance = variances)
 )
@@ -533,66 +564,3 @@ pb.fit <- function(formula,                    #y~x formula including model and 
 }
 
 
-
-#test code for multinomial
-
-
-setwd(r"(C:\Users\laffertyrm\Documents\work\PB)")
-data = read.csv("bmi_cat.csv")
-data$race = array("other",c(nrow(data)))
-data$race[data$deltaR0==1] = "white"
-data$race[data$deltaR1==1] = "black"
-
-out = pb.fit(bmi_cat ~ age + age_square + pir + insurance + phy.act + alc.consump + smoke2 + smoke3,
-       data = data,
-       weights = data$sample_weight,
-       disparity.group = "race",
-       majority.group = "white",
-       minority.group = c("black","other"),
-       prop.odds.fail = NULL, #c("phy.act","alc.consump","smoke2","smoke3"),
-       family = "multinomial")
-
-print(out)
-
-
-#test code for linear
-
-
-setwd(r"(C:\Users\laffertyrm\Documents\work\PB)")
-data = read.csv("bmi.csv")
-data$race = array("other",c(nrow(data)))
-data$race[data$deltaR0==1] = "white"
-data$race[data$deltaR1==1] = "black"
-
-out = pb.fit(bmi ~ age + age_square + pir + insurance + phy.act + alc.consump + smoke2 + smoke3,
-             data = data,
-             weights = data$sample_weight,
-             disparity.group = "race",
-             majority.group = "white",
-             minority.group = c("black","other"),
-             prop.odds.fail = NULL, #c("phy.act","alc.consump","smoke2","smoke3"),
-             family = "gaussian")
-
-print(out)
-
-
-#test code for binary logistic
-
-
-setwd(r"(C:\Users\laffertyrm\Documents\work\PB)")
-data = read.csv("bmi_cat.csv")
-data$race = array("other",c(nrow(data)))
-data$race[data$deltaR0==1] = "white"
-data$race[data$deltaR1==1] = "black"
-data$bmi_cat[data$bmi_cat == 3] = 2
-
-out = pb.fit(bmi_cat ~ age + age_square + pir + insurance + phy.act + alc.consump + smoke2 + smoke3,
-             data = data,
-             weights = data$sample_weight,
-             disparity.group = "race",
-             majority.group = "white",
-             minority.group = c("black","other"),
-             prop.odds.fail = NULL, #c("phy.act","alc.consump","smoke2","smoke3"),
-             family = "multinomial")
-
-print(out)

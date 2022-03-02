@@ -1,0 +1,110 @@
+---
+title: "Some Examples Using Simulation"
+author: "Ryan Lafferty"
+date: "2/28/2022"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+devtools::load_all(path=r"(C:\Users\laffertyrm\Documents\work\PB\pbanalysis)")
+
+```
+
+### Simulated Racial Discrimination 
+
+ Let's try to simulate a situation where discrimination is happening 
+ and see if the PB method can detect it.
+ Suppose black and white applicants are applying for a certain job.
+ Imagine that it is permissible to judge applicants based on educational 
+ background, years of experience in the role, and results from a certain aptitude
+ test administered to all applicants. However, we assume that it is not permissible
+ to judge an applicant directly on the basis of his/her race. 
+ 
+ Let us define the three covariates of interest. The first will be a binary 
+ measure of educational background, `college` which indicates whether the applicant 
+ graduated college or not. The second, `experience` will be the number of years
+ the applicant has worked in a related role. The third, `score` is the the 
+ applicant's test score on the aptitude test, which we will suppose is a number
+ between 0 and 100. 
+ 
+ We will assume that the first two covariates may depend on the applicant's race,
+ due to possible socio-economic factors, while the third has no relationship to
+ the applicant's race. 
+ 
+ ```{r}
+# Define the race category, and the three covariates
+
+n_white = 500
+n_black = 500
+n = n_white + n_black
+
+race = rep("black", n)
+race[1:n_white] = "white"
+
+# bernoulli with higher success probability for whites
+college = rep(0,n)
+college[race == "white"] = rbinom(n_white,size = 1, prob = .44)
+college[race == "black"] = rbinom(n_black,size = 1, prob = .30)
+
+# exponential with higher mean for whites
+experience = rep(0,n)
+experience[race == "white"] = round(rexp(n_white,rate=1/2))
+experience[race == "black"] = round(rexp(n_black,rate=1/1))
+
+# approx normally distributed but cut off at 0 and 100
+score = round(pmax(0,pmin(100,rnorm(n,mean=70,sd=15))),2)
+
+ ```
+ 
+ 
+ The first case we will consider is the honest employer which does not take race
+ into account in its application process. Let's call this Employer A. The 
+ response variable, `hired` will be a binary variable that records whether an
+ applicant has been hired or not following the application process. We will 
+ imagine that Employer A makes its hiring decisions using the following
+ idealized method: First, we randomly generate some (positive) coefficients for 
+ each covariate (not including race). Then, we multiply the (normalized) covariates
+ by the corresponding coefficients and sum for each applicant. Then we hire the 
+ top ten applicants with the highest totals and reject the rest.
+ 
+ ```{r}
+ # First randomly generate some positive coefficients for hiring function
+ coefs = runif(3)
+ 
+ # Normalize the covariates 
+ norm_college = (college-mean(college))/sd(college)
+ norm_experience = (experience-mean(experience))/sd(college) 
+ norm_score = (score - mean(score))/sd(score)
+ 
+ # Compute weighted totals
+ totals = coefs[1]*norm_college + coefs[2]*norm_experience + coefs[3]*norm_score
+ totals[race == "black"] = totals[race == "black"]
+ 
+ # Choose top ten totals and define response variable
+ top.10.idx = order(totals,decreasing=T)[1:10]
+ hired = rep("rejected",n)
+ hired[top.10.idx] = "hired"
+ 
+ ```
+ 
+ Now let us test our pb.fit function on this simulated scenario. We will assume
+ a binary logistic model. 
+ 
+ ```{r}
+ data = data.frame(hired = hired,
+                   race = race,
+                   college = college,
+                   experience = experience,
+                   score = score)
+ results = pb.fit(hired ~ college + experience + score,
+                  data = data,
+                  family = "multinomial",
+                  disparity.group = "race",
+                  majority.group = "white",
+                  minority.group = "black",
+                  base.level = "hired")
+ print(results)
+ ```
