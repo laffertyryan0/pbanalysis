@@ -37,8 +37,8 @@ devtools::load_all(path=r"(C:\Users\laffertyrm\Documents\work\PB\pbanalysis)")
  ```{r}
 # Define the race category, and the three covariates
 
-n_white = 500
-n_black = 500
+n_white = 50
+n_black = 50
 n = n_white + n_black
 
 race = rep("black", n)

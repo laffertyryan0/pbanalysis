@@ -42,6 +42,46 @@
   pdfcreator={LaTeX via pandoc}}
 \urlstyle{same} % disable monospaced font for URLs
 \usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
 \usepackage{graphicx}
 \makeatletter
 \def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
@@ -78,6 +118,123 @@ Let's try to simulate a situation where discrimination is happening and
 see if the PB method can detect it. Suppose black and white applicants
 are applying for a certain job. Imagine that it is permissible to judge
 applicants based on educational background, years of experience in the
-role, and
+role, and results from a certain aptitude test administered to all
+applicants. However, we assume that it is not permissible to judge an
+applicant directly on the basis of his/her race.
+
+Let us define the three covariates of interest. The first will be a
+binary measure of educational background, \texttt{college} which
+indicates whether the applicant graduated college or not. The second,
+\texttt{experience} will be the number of years the applicant has worked
+in a related role. The third, \texttt{score} is the the applicant's test
+score on the aptitude test, which we will suppose is a number between 0
+and 100.
+
+We will assume that the first two covariates may depend on the
+applicant's race, due to possible socio-economic factors, while the
+third has no relationship to the applicant's race.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Define the race category, and the three covariates}
+
+\NormalTok{n\_white }\OtherTok{=} \DecValTok{500}
+\NormalTok{n\_black }\OtherTok{=} \DecValTok{500}
+\NormalTok{n }\OtherTok{=}\NormalTok{ n\_white }\SpecialCharTok{+}\NormalTok{ n\_black}
+
+\NormalTok{race }\OtherTok{=} \FunctionTok{rep}\NormalTok{(}\StringTok{"black"}\NormalTok{, n)}
+\NormalTok{race[}\DecValTok{1}\SpecialCharTok{:}\NormalTok{n\_white] }\OtherTok{=} \StringTok{"white"}
+
+\CommentTok{\# bernoulli with higher success probability for whites}
+\NormalTok{college }\OtherTok{=} \FunctionTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{,n)}
+\NormalTok{college[race }\SpecialCharTok{==} \StringTok{"white"}\NormalTok{] }\OtherTok{=} \FunctionTok{rbinom}\NormalTok{(n\_white,}\AttributeTok{size =} \DecValTok{1}\NormalTok{, }\AttributeTok{prob =}\NormalTok{ .}\DecValTok{44}\NormalTok{)}
+\NormalTok{college[race }\SpecialCharTok{==} \StringTok{"black"}\NormalTok{] }\OtherTok{=} \FunctionTok{rbinom}\NormalTok{(n\_black,}\AttributeTok{size =} \DecValTok{1}\NormalTok{, }\AttributeTok{prob =}\NormalTok{ .}\DecValTok{30}\NormalTok{)}
+
+\CommentTok{\# exponential with higher mean for whites}
+\NormalTok{experience }\OtherTok{=} \FunctionTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{,n)}
+\NormalTok{experience[race }\SpecialCharTok{==} \StringTok{"white"}\NormalTok{] }\OtherTok{=} \FunctionTok{round}\NormalTok{(}\FunctionTok{rexp}\NormalTok{(n\_white,}\AttributeTok{rate=}\DecValTok{1}\SpecialCharTok{/}\DecValTok{2}\NormalTok{))}
+\NormalTok{experience[race }\SpecialCharTok{==} \StringTok{"black"}\NormalTok{] }\OtherTok{=} \FunctionTok{round}\NormalTok{(}\FunctionTok{rexp}\NormalTok{(n\_black,}\AttributeTok{rate=}\DecValTok{1}\SpecialCharTok{/}\DecValTok{1}\NormalTok{))}
+
+\CommentTok{\# approx normally distributed but cut off at 0 and 100}
+\NormalTok{score }\OtherTok{=} \FunctionTok{round}\NormalTok{(}\FunctionTok{pmax}\NormalTok{(}\DecValTok{0}\NormalTok{,}\FunctionTok{pmin}\NormalTok{(}\DecValTok{100}\NormalTok{,}\FunctionTok{rnorm}\NormalTok{(n,}\AttributeTok{mean=}\DecValTok{70}\NormalTok{,}\AttributeTok{sd=}\DecValTok{15}\NormalTok{))),}\DecValTok{2}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+The first case we will consider is the honest employer which does not
+take race into account in its application process. Let's call this
+Employer A. The response variable, \texttt{hired} will be a binary
+variable that records whether an applicant has been hired or not
+following the application process. We will imagine that Employer A makes
+its hiring decisions using the following idealized method: First, we
+randomly generate some (positive) coefficients for each covariate (not
+including race). Then, we multiply the (normalized) covariates by the
+corresponding coefficients and sum for each applicant. Then we hire the
+top ten applicants with the highest totals and reject the rest.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# First randomly generate some positive coefficients for hiring function}
+\NormalTok{coefs }\OtherTok{=} \FunctionTok{runif}\NormalTok{(}\DecValTok{3}\NormalTok{)}
+
+\CommentTok{\# Normalize the covariates }
+\NormalTok{norm\_college }\OtherTok{=}\NormalTok{ (college}\SpecialCharTok{{-}}\FunctionTok{mean}\NormalTok{(college))}\SpecialCharTok{/}\FunctionTok{sd}\NormalTok{(college)}
+\NormalTok{norm\_experience }\OtherTok{=}\NormalTok{ (experience}\SpecialCharTok{{-}}\FunctionTok{mean}\NormalTok{(experience))}\SpecialCharTok{/}\FunctionTok{sd}\NormalTok{(college) }
+\NormalTok{norm\_score }\OtherTok{=}\NormalTok{ (score }\SpecialCharTok{{-}} \FunctionTok{mean}\NormalTok{(score))}\SpecialCharTok{/}\FunctionTok{sd}\NormalTok{(score)}
+
+\CommentTok{\# Compute weighted totals}
+\NormalTok{totals }\OtherTok{=}\NormalTok{ coefs[}\DecValTok{1}\NormalTok{]}\SpecialCharTok{*}\NormalTok{norm\_college }\SpecialCharTok{+}\NormalTok{ coefs[}\DecValTok{2}\NormalTok{]}\SpecialCharTok{*}\NormalTok{norm\_experience }\SpecialCharTok{+}\NormalTok{ coefs[}\DecValTok{3}\NormalTok{]}\SpecialCharTok{*}\NormalTok{norm\_score}
+\NormalTok{totals[race }\SpecialCharTok{==} \StringTok{"black"}\NormalTok{] }\OtherTok{=}\NormalTok{ totals[race }\SpecialCharTok{==} \StringTok{"black"}\NormalTok{]}
+
+\CommentTok{\# Choose top ten totals and define response variable}
+\NormalTok{top.}\FloatTok{10.}\NormalTok{idx }\OtherTok{=} \FunctionTok{order}\NormalTok{(totals,}\AttributeTok{decreasing=}\NormalTok{T)[}\DecValTok{1}\SpecialCharTok{:}\DecValTok{10}\NormalTok{]}
+\NormalTok{hired }\OtherTok{=} \FunctionTok{rep}\NormalTok{(}\StringTok{"rejected"}\NormalTok{,n)}
+\NormalTok{hired[top.}\FloatTok{10.}\NormalTok{idx] }\OtherTok{=} \StringTok{"hired"}
+\end{Highlighting}
+\end{Shaded}
+
+Now let us test our pb.fit function on this simulated scenario. We will
+assume a binary logistic model.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{data }\OtherTok{=} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{hired =}\NormalTok{ hired,}
+                  \AttributeTok{race =}\NormalTok{ race,}
+                  \AttributeTok{college =}\NormalTok{ college,}
+                  \AttributeTok{experience =}\NormalTok{ experience,}
+                  \AttributeTok{score =}\NormalTok{ score)}
+\NormalTok{results }\OtherTok{=} \FunctionTok{pb.fit}\NormalTok{(hired }\SpecialCharTok{\textasciitilde{}}\NormalTok{ college }\SpecialCharTok{+}\NormalTok{ experience }\SpecialCharTok{+}\NormalTok{ score,}
+                 \AttributeTok{data =}\NormalTok{ data,}
+                 \AttributeTok{family =} \StringTok{"multinomial"}\NormalTok{,}
+                 \AttributeTok{disparity.group =} \StringTok{"race"}\NormalTok{,}
+                 \AttributeTok{majority.group =} \StringTok{"white"}\NormalTok{,}
+                 \AttributeTok{minority.group =} \StringTok{"black"}\NormalTok{,}
+                 \AttributeTok{base.level =} \StringTok{"hired"}\NormalTok{)}
+\FunctionTok{print}\NormalTok{(results)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## $sample.sizes
+##           
+##            black white
+##   hired        1     9
+##   rejected   499   491
+## 
+## $percent.unexplained
+##             black
+## level=hired  7.23
+## 
+## $overall.disp
+##             black
+## level=hired 0.016
+## 
+## $unexplained.disp
+##              black
+## level=hired 0.0012
+## 
+## $unexp.disp.variance
+##               black
+## level=hired 3.1e-06
+\end{verbatim}
 
 \end{document}

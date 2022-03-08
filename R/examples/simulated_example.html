@@ -178,8 +178,8 @@ pre code {
 <p>We will assume that the first two covariates may depend on the applicant’s race, due to possible socio-economic factors, while the third has no relationship to the applicant’s race.</p>
 <pre class="r"><code># Define the race category, and the three covariates
 
-n_white = 500
-n_black = 500
+n_white = 50
+n_black = 50
 n = n_white + n_black
 
 race = rep(&quot;black&quot;, n)
@@ -231,24 +231,28 @@ print(results)</code></pre>
 <pre><code>## $sample.sizes
 ##           
 ##            black white
-##   hired        0    10
-##   rejected   500   490
+##   hired        2     8
+##   rejected    48    42
+## 
+## $observed.estimate
+##             black
+## level=hired  0.04
 ## 
 ## $percent.unexplained
 ##             black
-## level=hired     0
+## level=hired  4.09
 ## 
 ## $overall.disp
 ##             black
-## level=hired  0.02
+## level=hired  0.12
 ## 
 ## $unexplained.disp
-##               black
-## level=hired 4.3e-08
+##              black
+## level=hired 0.0049
 ## 
 ## $unexp.disp.variance
 ##               black
-## level=hired 7.7e-15</code></pre>
+## level=hired 2.1e-05</code></pre>
 </div>
 
 

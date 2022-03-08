@@ -1,3 +1,27 @@
+#' Peters-Belson Analysis Package
+#'
+#' @param formula A description of the advantaged group (AG) model, e.g. y ~ x
+#' @param data The dataset to be used for analysis. Must include response, covariates and a group membership variable (see examples)
+#' @param weights Optional sample weight vector for survey data. If survey parameters are not specified, a simple random sample will be assumed.
+#' @param strata Vector of strata labels for survey data. If not specified, we assume a non-stratified design (i.e. a single stratum)
+#' @param psu Vector of primary sampling unit (PSU) labels for multistage survey designs. If the same PSU label is used in two different strata, the PSU's will
+#' be assumed distinct.
+#' @param survey.design A svydesign object (see survey package) can be optionally provided here. If provided, it will take the place of the data, weights, strata
+#' and psu arguments. Hence, users familiar with the survey package may choose to provide a svydesign object instead of manually specifying the four preceding arguments.
+#' @param family A string representing a model family supported by this package. Options include "gaussian", "ordinal" and "multinomial". Note that
+#' gaussian models are appropriate for a continuous response. For a multinomial model, any response level names are allowed. For ordinal models, please use positive integers
+#' 1,2,3 etc. to indicate ordering of response levels.
+#' @param disparity.group The column name of the group membership (e.g. race) variable.
+#' @param majority.group The level name for the advantaged group (AG) or reference group.
+#' @param minority.group The level name (or vector of level names) of the minority/disadvantaged groups to be considered in the analysis. If not specified,
+#' it is assumed that all non-AG levels will be considered.
+#' @param prop.odds.fail Specify this only for ordinal family. For ordinal family, if not provided, it is assumed that the proportional odds assumption holds for
+#' all covariates in the model. Otherwise, prop.odds.fail should contain a vector of all names of variables for which the proportional odds assumption does not hold.
+#' The user is encouraged to first perform a statistical test to determine which variables fail to satisfy the proportional odds assumption.
+#' If prop.odds.fail is specified and has length>0, an unconstrained partial proportional odds model will be used.
+#' @param base.level This is an optional argument that can only be used with multinomial family. For a T-level multinomial model, base.level will be assumed
+#' to be the reference level and will always be included in the model output. By default, only levels 1,2,3,...,T-1, in alphabetical ordering will be shown in the
+#' model output. However, if specified, base.level will be considered as level 1, and hence forced to be included in the model output.
 #' @export
 pb.fit <- function(formula,                    #y~x formula including model and covariates
                    data,                       #data frame including response and racial category variable
@@ -465,6 +489,7 @@ pb.fit <- function(formula,                    #y~x formula including model and 
   }
 
   pct.unexp = 100*(unexp.disp/overall.disp)
+  observed.proportion = pRk
 
   #compute Taylor deviates and corresponding variances
   z = array(0,c(nsamp,max(1,(T-1)),length(minority.group)))
@@ -501,6 +526,8 @@ pb.fit <- function(formula,                    #y~x formula including model and 
     }
   }
 
+  ## The following is a bit .. err.. untidy
+  ## we will have to make some well-thought changes in a later commit
 
   variances = signif(data.frame(variances),round_places)
   colnames(variances) = minority.group
@@ -542,11 +569,22 @@ pb.fit <- function(formula,                    #y~x formula including model and 
     rownames(overall.disp) = "result"
   }
 
+  observed.proportion = signif(data.frame(observed.proportion),round_places)
+  colnames(observed.proportion) = minority.group
+  if(T>1){
+    rownames(observed.proportion) = paste("level=", levels(as.factor(y))[1:(T-1)],sep="")
+    rownames(observed.proportion) = gsub("[*]","",rownames(observed.proportion)) #delete any * character from rownames
+  }
+  else{
+    rownames(observed.proportion) = "result"
+  }
 
+
+  #sample sizes
   if(family == "gaussian"){
     sample.sizes = table(data[disparity.group][,])
   }else{
-    y = gsub("[*]","",y)
+    y = gsub("[*]","",y) #now we can get rid of that * character in y
     sample.sizes = table(unname(y),data[disparity.group][,])
   }
 
@@ -555,6 +593,7 @@ pb.fit <- function(formula,                    #y~x formula including model and 
 #uncomment the following lines to include observed and predicted prevalence in outputs
              #observed = y_ind,
              #predicted = phat,
+              observed.estimate = observed.proportion,
               percent.unexplained = pct.unexp,
               overall.disp = overall.disp,
               unexplained.disp = unexp.disp,
