@@ -51,7 +51,7 @@ college[race == "black"] = rbinom(n_black,size = 1, prob = .30)
 
 # exponential with higher mean for whites
 experience = rep(0,n)
-experience[race == "white"] = round(rexp(n_white,rate=1/2))
+experience[race == "white"] = round(rexp(n_white,rate=1/1.5))
 experience[race == "black"] = round(rexp(n_black,rate=1/1))
 
 # approx normally distributed but cut off at 0 and 100
@@ -81,7 +81,6 @@ score = round(pmax(0,pmin(100,rnorm(n,mean=70,sd=15))),2)
  
  # Compute weighted totals
  totals = coefs[1]*norm_college + coefs[2]*norm_experience + coefs[3]*norm_score
- totals[race == "black"] = totals[race == "black"]
  
  # Choose top ten totals and define response variable
  top.10.idx = order(totals,decreasing=T)[1:10]
@@ -108,3 +107,69 @@ score = round(pmax(0,pmin(100,rnorm(n,mean=70,sd=15))),2)
                   base.level = "hired")
  print(results)
  ```
+ 
+ We can use the results for unexplained disparity and unexplained disparity variance to 
+ perform a simple asymptotic test to check for significance. 
+ 
+ ```{r}
+ #test H0: unexplained.disp = 0
+ #vs.  H1: unexplained.disp > 0
+ 
+ zscore = results$unexplained.disp/sqrt(results$unexp.disp.variance)
+ 
+ print(paste("P-value:", pnorm(zscore[[1]],lower.tail=FALSE)))
+ ```
+
+Now let us perform the same analysis on Employer B. We will assume Employer B is 
+deliberately discriminating against black applicants by cutting `totals` for black 
+applicants in half before ranking them. 
+
+ ```{r}
+ # Cut totals in half for black applicants
+ 
+ totals.A = totals
+ totals.B = totals
+ totals.B[race == "black"] = totals[race == "black"]/2
+ 
+ # Choose top ten totals and define response variable
+ top.10.idx = order(totals.B,decreasing=T)[1:10]
+ hired = rep("rejected",n)
+ hired[top.10.idx] = "hired"
+ 
+ data = data.frame(hired = hired,
+                   race = race,
+                   college = college,
+                   experience = experience,
+                   score = score)
+ results = pb.fit(hired ~ college + experience + score,
+                  data = data,
+                  family = "multinomial",
+                  disparity.group = "race",
+                  majority.group = "white",
+                  minority.group = "black",
+                  base.level = "hired")
+ print(results)
+ ```
+
+Now let's perform the test again and see if we notice any difference in the p-value. 
+
+ ```{r}
+ #test H0: unexplained.disp = 0
+ #vs.  H1: unexplained.disp > 0
+ 
+ zscore = results$unexplained.disp/sqrt(results$unexp.disp.variance)
+ 
+ print(paste("P-value:", pnorm(zscore[[1]],lower.tail=FALSE)))
+ ```
+ 
+We need to be very careful when interpreting the results of our analysis, 
+especially in a high stakes scenario such as a legal battle. Neglecting to 
+take adequate care could result in failing to render justice to a guilty party
+or falsely accusing an innocent party. Model assumptions are critical and can
+heavily influence the outcome of the analysis. In particular, we must be 
+reasonably sure that there do not exist unobserved covariates that affect the 
+hiring decision, but which would be legitimate to use in selecting the best 
+candidate. In this simple model we have the ability to know exactly which 
+variables are used in making hiring decisions. However, in the real world this 
+can be more difficult. 
+

@@ -192,7 +192,7 @@ college[race == &quot;black&quot;] = rbinom(n_black,size = 1, prob = .30)
 
 # exponential with higher mean for whites
 experience = rep(0,n)
-experience[race == &quot;white&quot;] = round(rexp(n_white,rate=1/2))
+experience[race == &quot;white&quot;] = round(rexp(n_white,rate=1/1.5))
 experience[race == &quot;black&quot;] = round(rexp(n_black,rate=1/1))
 
 # approx normally distributed but cut off at 0 and 100
@@ -208,7 +208,6 @@ norm_score = (score - mean(score))/sd(score)
 
 # Compute weighted totals
 totals = coefs[1]*norm_college + coefs[2]*norm_experience + coefs[3]*norm_score
-totals[race == &quot;black&quot;] = totals[race == &quot;black&quot;]
 
 # Choose top ten totals and define response variable
 top.10.idx = order(totals,decreasing=T)[1:10]
@@ -228,31 +227,126 @@ results = pb.fit(hired ~ college + experience + score,
                  minority.group = &quot;black&quot;,
                  base.level = &quot;hired&quot;)
 print(results)</code></pre>
-<pre><code>## $sample.sizes
+<pre><code>## $reference.model
+## Call:
+## nnet::multinom(formula = factor_y[deltaR0] ~ cov.x[deltaR0, ], 
+##     weights = w[deltaR0], trace = F)
+## 
+## Coefficients:
+##                (Intercept)    cov.x[deltaR0, ]college 
+##                103.0117188                -20.8644362 
+## cov.x[deltaR0, ]experience      cov.x[deltaR0, ]score 
+##                 -6.0120919                 -0.9043473 
+## 
+## Residual Deviance: 0.8405496 
+## AIC: 8.84055 
+## 
+## $sample.sizes
 ##           
 ##            black white
-##   hired        2     8
-##   rejected    48    42
+##   hired        3     7
+##   rejected    47    43
 ## 
 ## $observed.estimate
 ##             black
-## level=hired  0.04
+## level=hired  0.06
 ## 
 ## $percent.unexplained
 ##             black
-## level=hired  4.09
+## level=hired 31.29
 ## 
 ## $overall.disp
 ##             black
-## level=hired  0.12
+## level=hired  0.08
 ## 
 ## $unexplained.disp
-##              black
-## level=hired 0.0049
+##             black
+## level=hired 0.025
 ## 
 ## $unexp.disp.variance
 ##               black
-## level=hired 2.1e-05</code></pre>
+## level=hired 0.00038</code></pre>
+<p>We can use the results for unexplained disparity and unexplained disparity variance to perform a simple asymptotic test to check for significance.</p>
+<pre class="r"><code>#test H0: unexplained.disp = 0
+#vs.  H1: unexplained.disp &gt; 0
+
+zscore = results$unexplained.disp/sqrt(results$unexp.disp.variance)
+
+print(paste(&quot;P-value:&quot;, pnorm(zscore[[1]],lower.tail=FALSE)))</code></pre>
+<pre><code>## [1] &quot;P-value: 0.0998383957532196&quot;</code></pre>
+<p>Now let us perform the same analysis on Employer B. We will assume Employer B is deliberately discriminating against black applicants by cutting <code>totals</code> for black applicants in half before ranking them.</p>
+<pre class="r"><code># Cut totals in half for black applicants
+
+totals.A = totals
+totals.B = totals
+totals.B[race == &quot;black&quot;] = totals[race == &quot;black&quot;]/2
+
+# Choose top ten totals and define response variable
+top.10.idx = order(totals.B,decreasing=T)[1:10]
+hired = rep(&quot;rejected&quot;,n)
+hired[top.10.idx] = &quot;hired&quot;
+
+data = data.frame(hired = hired,
+                  race = race,
+                  college = college,
+                  experience = experience,
+                  score = score)
+results = pb.fit(hired ~ college + experience + score,
+                 data = data,
+                 family = &quot;multinomial&quot;,
+                 disparity.group = &quot;race&quot;,
+                 majority.group = &quot;white&quot;,
+                 minority.group = &quot;black&quot;,
+                 base.level = &quot;hired&quot;)
+print(results)</code></pre>
+<pre><code>## $reference.model
+## Call:
+## nnet::multinom(formula = factor_y[deltaR0] ~ cov.x[deltaR0, ], 
+##     weights = w[deltaR0], trace = F)
+## 
+## Coefficients:
+##                (Intercept)    cov.x[deltaR0, ]college 
+##                 138.592756                 -48.012385 
+## cov.x[deltaR0, ]experience      cov.x[deltaR0, ]score 
+##                  -8.855543                  -1.036456 
+## 
+## Residual Deviance: 2.185721 
+## AIC: 10.18572 
+## 
+## $sample.sizes
+##           
+##            black white
+##   hired        0    10
+##   rejected    50    40
+## 
+## $observed.estimate
+##             black
+## level=hired     0
+## 
+## $percent.unexplained
+##             black
+## level=hired 68.52
+## 
+## $overall.disp
+##             black
+## level=hired   0.2
+## 
+## $unexplained.disp
+##             black
+## level=hired  0.14
+## 
+## $unexp.disp.variance
+##              black
+## level=hired 0.0023</code></pre>
+<p>Now let’s perform the test again and see if we notice any difference in the p-value.</p>
+<pre class="r"><code>#test H0: unexplained.disp = 0
+#vs.  H1: unexplained.disp &gt; 0
+
+zscore = results$unexplained.disp/sqrt(results$unexp.disp.variance)
+
+print(paste(&quot;P-value:&quot;, pnorm(zscore[[1]],lower.tail=FALSE)))</code></pre>
+<pre><code>## [1] &quot;P-value: 0.00175464485237253&quot;</code></pre>
+<p>We need to be very careful when interpreting the results of our analysis, especially in a high stakes scenario such as a legal battle. Neglecting to take adequate care could result in failing to render justice to a guilty party or falsely accusing an innocent party. Model assumptions are critical and can heavily influence the outcome of the analysis. In particular, we must be reasonably sure that there do not exist unobserved covariates that affect the hiring decision, but which would be legitimate to use in selecting the best candidate. In this simple model we have the ability to know exactly which variables are used in making hiring decisions. However, in the real world this can be more difficult.</p>
 </div>
 
 

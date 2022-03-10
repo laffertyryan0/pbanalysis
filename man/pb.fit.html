@@ -1,0 +1,101 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Peters-Belson Analysis Package</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body><div class="container">
+
+<table width="100%" summary="page for pb.fit"><tr><td>pb.fit</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Peters-Belson Analysis Package</h2>
+
+<h3>Description</h3>
+
+<p>Peters-Belson Analysis Package
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+pb.fit(
+  formula,
+  data,
+  weights = NULL,
+  strata = NULL,
+  psu = NULL,
+  survey.design = NULL,
+  family = "gaussian",
+  disparity.group = "race",
+  majority.group = "white",
+  minority.group = NULL,
+  prop.odds.fail = NULL,
+  base.level = NULL
+)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>formula</code></td>
+<td>
+<p>A description of the advantaged group (AG) model, e.g. y ~ x</p>
+</td></tr>
+<tr valign="top"><td><code>data</code></td>
+<td>
+<p>The dataset to be used for analysis. Must include response, covariates and a group membership variable (see examples)</p>
+</td></tr>
+<tr valign="top"><td><code>weights</code></td>
+<td>
+<p>Optional sample weight vector for survey data. If survey parameters are not specified, a simple random sample will be assumed.</p>
+</td></tr>
+<tr valign="top"><td><code>strata</code></td>
+<td>
+<p>Vector of strata labels for survey data. If not specified, we assume a non-stratified design (i.e. a single stratum)</p>
+</td></tr>
+<tr valign="top"><td><code>psu</code></td>
+<td>
+<p>Vector of primary sampling unit (PSU) labels for multistage survey designs. If the same PSU label is used in two different strata, the PSU's will
+be assumed distinct.</p>
+</td></tr>
+<tr valign="top"><td><code>survey.design</code></td>
+<td>
+<p>A svydesign object (see survey package) can be optionally provided here. If provided, it will take the place of the data, weights, strata
+and psu arguments. Hence, users familiar with the survey package may choose to provide a svydesign object instead of manually specifying the four preceding arguments.</p>
+</td></tr>
+<tr valign="top"><td><code>family</code></td>
+<td>
+<p>A string representing a model family supported by this package. Options include &quot;gaussian&quot;, &quot;ordinal&quot; and &quot;multinomial&quot;. Note that
+gaussian models are appropriate for a continuous response. For a multinomial model, any response level names are allowed. For ordinal models, please use positive integers
+1,2,3 etc. to indicate ordering of response levels.</p>
+</td></tr>
+<tr valign="top"><td><code>disparity.group</code></td>
+<td>
+<p>The column name of the group membership (e.g. race) variable.</p>
+</td></tr>
+<tr valign="top"><td><code>majority.group</code></td>
+<td>
+<p>The level name for the advantaged group (AG) or reference group.</p>
+</td></tr>
+<tr valign="top"><td><code>minority.group</code></td>
+<td>
+<p>The level name (or vector of level names) of the minority/disadvantaged groups to be considered in the analysis. If not specified,
+it is assumed that all non-AG levels will be considered.</p>
+</td></tr>
+<tr valign="top"><td><code>prop.odds.fail</code></td>
+<td>
+<p>Specify this only for ordinal family. For ordinal family, if not provided, it is assumed that the proportional odds assumption holds for
+all covariates in the model. Otherwise, prop.odds.fail should contain a vector of all names of variables for which the proportional odds assumption does not hold.
+The user is encouraged to first perform a statistical test to determine which variables fail to satisfy the proportional odds assumption.
+If prop.odds.fail is specified and has length&gt;0, an unconstrained partial proportional odds model will be used.</p>
+</td></tr>
+<tr valign="top"><td><code>base.level</code></td>
+<td>
+<p>This is an optional argument that can only be used with multinomial family. For a T-level multinomial model, base.level will be assumed
+to be the reference level and will always be included in the model output. By default, only levels 1,2,3,...,T-1, in alphabetical ordering will be shown in the
+model output. However, if specified, base.level will be considered as level 1, and hence forced to be included in the model output.</p>
+</td></tr>
+</table>
+
+
+</div></body></html>

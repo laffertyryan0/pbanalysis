@@ -589,6 +589,7 @@ pb.fit <- function(formula,                    #y~x formula including model and 
   }
 
   return(list(
+              reference.model = mod,
               sample.sizes = sample.sizes,
 #uncomment the following lines to include observed and predicted prevalence in outputs
              #observed = y_ind,
