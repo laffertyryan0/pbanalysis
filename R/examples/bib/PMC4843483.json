@@ -1,0 +1,61 @@
+{
+    "source": "PubMed",
+    "accessed": {
+        "date-parts": [
+            [
+                2022,
+                3,
+                22
+            ]
+        ]
+    },
+    "id": "pmid:27044069",
+    "title": "Racial bias in pain assessment and treatment recommendations, and false beliefs about biological differences between blacks and whites",
+    "author": [
+        {
+            "family": "Hoffman",
+            "given": "Kelly M"
+        },
+        {
+            "family": "Trawalter",
+            "given": "Sophie"
+        },
+        {
+            "family": "Axt",
+            "given": "Jordan R"
+        },
+        {
+            "family": "Oliver",
+            "given": "M Norman"
+        }
+    ],
+    "container-title-short": "Proc Natl Acad Sci U S A",
+    "container-title": "Proceedings of the National Academy of Sciences of the United States of America",
+    "publisher": "National Academy of Sciences",
+    "ISSN": "0027-8424",
+    "issued": {
+        "date-parts": [
+            [
+                2016,
+                4,
+                19
+            ]
+        ]
+    },
+    "epub-date": {
+        "date-parts": [
+            [
+                2016,
+                4,
+                4
+            ]
+        ]
+    },
+    "page": "4296-301",
+    "volume": "113",
+    "issue": "16",
+    "PMID": "27044069",
+    "PMCID": "PMC4843483",
+    "DOI": "10.1073/pnas.1516047113",
+    "type": "article-journal"
+}

@@ -16,7 +16,7 @@ out = pb.fit(bmi_cat ~ age + age_square + pir + insurance + phy.act + alc.consum
              majority.group = "white",
              minority.group = c("black","other"),
              prop.odds.fail = NULL, #c("phy.act","alc.consump","smoke2","smoke3"),
-             family = "multinomial")
+             family = "ordinal")
 
 print(out)
 

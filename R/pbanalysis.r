@@ -1,4 +1,4 @@
-#' Peters-Belson Analysis Package
+#' Peters-Belson Analysis
 #'
 #' @param formula A description of the advantaged group (AG) model, e.g. y ~ x
 #' @param data The dataset to be used for analysis. Must include response, covariates and a group membership variable (see examples)
@@ -490,6 +490,8 @@ pb.fit <- function(formula,                    #y~x formula including model and 
 
   pct.unexp = 100*(unexp.disp/overall.disp)
   observed.proportion = pRk
+  estimated.mean = phat.R0.Rk
+  ref.observed = pR0
 
   #compute Taylor deviates and corresponding variances
   z = array(0,c(nsamp,max(1,(T-1)),length(minority.group)))
@@ -579,6 +581,24 @@ pb.fit <- function(formula,                    #y~x formula including model and 
     rownames(observed.proportion) = "result"
   }
 
+  estimated.mean = signif(data.frame(estimated.mean),round_places)
+  colnames(estimated.mean) = minority.group
+  if(T>1){
+    rownames(estimated.mean) = paste("level=", levels(as.factor(y))[1:(T-1)],sep="")
+    rownames(estimated.mean) = gsub("[*]","",rownames(estimated.mean)) #delete any * character from rownames
+  }
+  else{
+    rownames(estimated.mean) = "result"
+  }
+  ref.observed = signif(data.frame(ref.observed),round_places)
+  colnames(ref.observed) = majority.group
+  if(T>1){
+    rownames(ref.observed) = paste("level=", levels(as.factor(y))[1:(T-1)],sep="")
+    rownames(ref.observed) = gsub("[*]","",rownames(ref.observed)) #delete any * character from rownames
+  }
+  else{
+    rownames(ref.observed) = "result"
+  }
 
   #sample sizes
   if(family == "gaussian"){
@@ -594,7 +614,9 @@ pb.fit <- function(formula,                    #y~x formula including model and 
 #uncomment the following lines to include observed and predicted prevalence in outputs
              #observed = y_ind,
              #predicted = phat,
-              observed.estimate = observed.proportion,
+              ref.observed = ref.observed,
+              observed.mean = observed.proportion,
+              estimated.mean = estimated.mean,
               percent.unexplained = pct.unexp,
               overall.disp = overall.disp,
               unexplained.disp = unexp.disp,
@@ -603,4 +625,64 @@ pb.fit <- function(formula,                    #y~x formula including model and 
 
 }
 
+#' @export
+pb.example = function(family = "gaussian"){
+  if(family == "multinomial"){
+    #test code for multinomial
 
+    data = read.csv(system.file("extdata", "bmi_cat.csv", package = "pbanalysis"))
+    data$race = array("other",c(nrow(data)))
+    data$race[data$deltaR0==1] = "white"
+    data$race[data$deltaR1==1] = "black"
+
+    out = pb.fit(bmi_cat ~ age + age_square + pir + insurance + phy.act + alc.consump + smoke2 + smoke3,
+                 data = data,
+                 weights = data$sample_weight,
+                 disparity.group = "race",
+                 majority.group = "white",
+                 minority.group = c("black","other"),
+                 prop.odds.fail = NULL, #c("phy.act","alc.consump","smoke2","smoke3"),
+                 family = "multinomial")
+
+    print(out)
+  }
+  if(family == "linear"){
+
+    #test code for linear
+
+    data = read.csv(system.file("extdata", "bmi.csv", package = "pbanalysis"))
+    data$race = array("other",c(nrow(data)))
+    data$race[data$deltaR0==1] = "white"
+    data$race[data$deltaR1==1] = "black"
+
+    out = pb.fit(bmi ~ age + age_square + pir + insurance + phy.act + alc.consump + smoke2 + smoke3,
+                 data = data,
+                 weights = data$sample_weight,
+                 disparity.group = "race",
+                 majority.group = "white",
+                 minority.group = c("black","other"),
+                 prop.odds.fail = NULL, #c("phy.act","alc.consump","smoke2","smoke3"),
+                 family = "gaussian")
+
+    print(out)
+
+  }
+  if(family == "ordinal"){
+    #test code for multinomial
+
+    data = read.csv(system.file("extdata", "bmi_cat.csv", package = "pbanalysis"))
+    data$race = array("other",c(nrow(data)))
+    data$race[data$deltaR0==1] = "white"
+    data$race[data$deltaR1==1] = "black"
+
+    out = pb.fit(bmi_cat ~ age + age_square + pir + insurance + phy.act + alc.consump + smoke2 + smoke3,
+                 data = data,
+                 weights = data$sample_weight,
+                 disparity.group = "race",
+                 majority.group = "white",
+                 minority.group = c("black","other"),
+                 prop.odds.fail = NULL, #c("phy.act","alc.consump","smoke2","smoke3"),
+                 family = "ordinal")
+
+    print(out)
+}

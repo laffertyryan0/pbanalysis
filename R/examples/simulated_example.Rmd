@@ -34,7 +34,7 @@ devtools::load_all(path=r"(C:\Users\laffertyrm\Documents\work\PB\pbanalysis)")
  due to possible socio-economic factors, while the third has no relationship to
  the applicant's race. 
  
- ```{r}
+```{r}
 # Define the race category, and the three covariates
 
 n_white = 50
@@ -57,7 +57,7 @@ experience[race == "black"] = round(rexp(n_black,rate=1/1))
 # approx normally distributed but cut off at 0 and 100
 score = round(pmax(0,pmin(100,rnorm(n,mean=70,sd=15))),2)
 
- ```
+```
  
  
  The first case we will consider is the honest employer which does not take race
@@ -70,7 +70,7 @@ score = round(pmax(0,pmin(100,rnorm(n,mean=70,sd=15))),2)
  by the corresponding coefficients and sum for each applicant. Then we hire the 
  top ten applicants with the highest totals and reject the rest.
  
- ```{r}
+```{r}
  # First randomly generate some positive coefficients for hiring function
  coefs = runif(3)
  
@@ -87,12 +87,12 @@ score = round(pmax(0,pmin(100,rnorm(n,mean=70,sd=15))),2)
  hired = rep("rejected",n)
  hired[top.10.idx] = "hired"
  
- ```
+```
  
  Now let us test our pb.fit function on this simulated scenario. We will assume
  a binary logistic model. 
  
- ```{r}
+```{r}
  data = data.frame(hired = hired,
                    race = race,
                    college = college,
@@ -106,25 +106,25 @@ score = round(pmax(0,pmin(100,rnorm(n,mean=70,sd=15))),2)
                   minority.group = "black",
                   base.level = "hired")
  print(results)
- ```
+```
  
  We can use the results for unexplained disparity and unexplained disparity variance to 
  perform a simple asymptotic test to check for significance. 
  
- ```{r}
+```{r}
  #test H0: unexplained.disp = 0
  #vs.  H1: unexplained.disp > 0
  
  zscore = results$unexplained.disp/sqrt(results$unexp.disp.variance)
  
  print(paste("P-value:", pnorm(zscore[[1]],lower.tail=FALSE)))
- ```
+```
 
 Now let us perform the same analysis on Employer B. We will assume Employer B is 
 deliberately discriminating against black applicants by cutting `totals` for black 
 applicants in half before ranking them. 
 
- ```{r}
+```{r}
  # Cut totals in half for black applicants
  
  totals.A = totals
@@ -149,18 +149,18 @@ applicants in half before ranking them.
                   minority.group = "black",
                   base.level = "hired")
  print(results)
- ```
+```
 
 Now let's perform the test again and see if we notice any difference in the p-value. 
 
- ```{r}
+```{r}
  #test H0: unexplained.disp = 0
  #vs.  H1: unexplained.disp > 0
  
  zscore = results$unexplained.disp/sqrt(results$unexp.disp.variance)
  
  print(paste("P-value:", pnorm(zscore[[1]],lower.tail=FALSE)))
- ```
+```
  
 We need to be very careful when interpreting the results of our analysis, 
 especially in a high stakes scenario such as a legal battle. Neglecting to 
@@ -173,3 +173,85 @@ candidate. In this simple model we have the ability to know exactly which
 variables are used in making hiring decisions. However, in the real world this 
 can be more difficult. 
 
+### PPO Simulation
+
+Now let's consider a healthcare scenario. It has been reported that white patients
+are often perceived as having a lower pain tolerance than black patients, and as
+a result, may be given more frequent or higher doses of pain medications. Let us
+imagine an artificial scenario where we can apply the `pb.fit` method to test
+whether discrimination is occurring. 
+
+Suppose we have 500 white patients and 500 black patients having pain symptoms. 
+These symptoms may be the result of various diseases. Perhaps disease A is more
+common in the white population, and disease B is more common in the black population.
+Hence, if disease A tends to elicit more pain symptoms than disease B, it is 
+plausible that average assessed pain levels are actually less in the black patients
+than in the white patients. Thus, to detect discrimination we will have to do
+a PB analysis. 
+
+Let us assume two covariates. First, we consider `disease_type` which is a binary
+variable, taking value 0 if the patient has (known to be more painful) disease A 
+and value 1 if the patient has (known to be less painful) disease B. In addition,
+we may consider a patient's reported pain level, `reported`, between 0 and 10, 
+which we will assume not to be directly affected by the patient's race. 
+
+```{r}
+# Define the race category, and the two covariates
+
+n_white = 500
+n_black = 500
+n = n_white + n_black
+
+race = rep("black", n)
+race[1:n_white] = "white"
+
+# bernoulli with higher success probability for black patients
+disease_type = rep(0,n)
+disease_type[race == "white"] = rbinom(n_white,size = 1, prob = .4)
+disease_type[race == "black"] = rbinom(n_black,size = 1, prob = .6)
+
+# reported should be higher for patients with disease B
+reported = rep(0,n)
+reported[disease_type == 0] = round(runif(sum(disease_type == 0),0,10))
+reported[disease_type == 1] = round(runif(sum(disease_type == 1),0,10))
+
+
+```
+ 
+ Let us imagine that a biased doctor is estimating the patient's true pain level
+ on a scale from 0 to 10 based on the covariates given. Suppose the doctor uses
+ a linear combination of the  covariates, together with race, to make a
+ decision. 
+ 
+```{r}
+ # Compute a pain score based on disease type and reported pain level + noise
+ score = (2*disease_type + reported + rnorm(n))/12
+ score = score*10
+ score = pmax(0,pmin(10,score))
+ 
+ # for black patients, multiply score by a factor of J
+ J = .5
+ score[race == "black"] = score[race == "black"]*J
+ 
+ # Round the scores to get an assessed pain level
+ assessed = round(score)
+ 
+```
+ 
+  Now let us test our pb.fit function on this simulated scenario. We will assume
+ a proportional odds model.
+ 
+```{r}
+ data = data.frame(assessed = assessed,
+                   race = race,
+                   disease_type = disease_type,
+                   reported = reported)
+ results = pb.fit(assessed ~ disease_type + reported,
+                  data = data,
+                  family = "ordinal",
+                  disparity.group = "race",
+                  majority.group = "white",
+                  minority.group = "black",
+                  prop.odds.fail = c("reported"))
+ print(results)
+```

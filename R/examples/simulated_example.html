@@ -61,6 +61,7 @@ if (window.hljs) {
 
 
 
+
 <style type="text/css">
 .main-container {
   max-width: 940px;
@@ -81,6 +82,9 @@ button.code-folding-btn:focus {
 }
 summary {
   display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
 }
 pre code {
   padding: 0;
@@ -198,35 +202,35 @@ experience[race == &quot;black&quot;] = round(rexp(n_black,rate=1/1))
 # approx normally distributed but cut off at 0 and 100
 score = round(pmax(0,pmin(100,rnorm(n,mean=70,sd=15))),2)</code></pre>
 <p>The first case we will consider is the honest employer which does not take race into account in its application process. Let’s call this Employer A. The response variable, <code>hired</code> will be a binary variable that records whether an applicant has been hired or not following the application process. We will imagine that Employer A makes its hiring decisions using the following idealized method: First, we randomly generate some (positive) coefficients for each covariate (not including race). Then, we multiply the (normalized) covariates by the corresponding coefficients and sum for each applicant. Then we hire the top ten applicants with the highest totals and reject the rest.</p>
-<pre class="r"><code># First randomly generate some positive coefficients for hiring function
-coefs = runif(3)
-
-# Normalize the covariates 
-norm_college = (college-mean(college))/sd(college)
-norm_experience = (experience-mean(experience))/sd(college) 
-norm_score = (score - mean(score))/sd(score)
-
-# Compute weighted totals
-totals = coefs[1]*norm_college + coefs[2]*norm_experience + coefs[3]*norm_score
-
-# Choose top ten totals and define response variable
-top.10.idx = order(totals,decreasing=T)[1:10]
-hired = rep(&quot;rejected&quot;,n)
-hired[top.10.idx] = &quot;hired&quot;</code></pre>
+<pre class="r"><code> # First randomly generate some positive coefficients for hiring function
+ coefs = runif(3)
+ 
+ # Normalize the covariates 
+ norm_college = (college-mean(college))/sd(college)
+ norm_experience = (experience-mean(experience))/sd(college) 
+ norm_score = (score - mean(score))/sd(score)
+ 
+ # Compute weighted totals
+ totals = coefs[1]*norm_college + coefs[2]*norm_experience + coefs[3]*norm_score
+ 
+ # Choose top ten totals and define response variable
+ top.10.idx = order(totals,decreasing=T)[1:10]
+ hired = rep(&quot;rejected&quot;,n)
+ hired[top.10.idx] = &quot;hired&quot;</code></pre>
 <p>Now let us test our pb.fit function on this simulated scenario. We will assume a binary logistic model.</p>
-<pre class="r"><code>data = data.frame(hired = hired,
-                  race = race,
-                  college = college,
-                  experience = experience,
-                  score = score)
-results = pb.fit(hired ~ college + experience + score,
-                 data = data,
-                 family = &quot;multinomial&quot;,
-                 disparity.group = &quot;race&quot;,
-                 majority.group = &quot;white&quot;,
-                 minority.group = &quot;black&quot;,
-                 base.level = &quot;hired&quot;)
-print(results)</code></pre>
+<pre class="r"><code> data = data.frame(hired = hired,
+                   race = race,
+                   college = college,
+                   experience = experience,
+                   score = score)
+ results = pb.fit(hired ~ college + experience + score,
+                  data = data,
+                  family = &quot;multinomial&quot;,
+                  disparity.group = &quot;race&quot;,
+                  majority.group = &quot;white&quot;,
+                  minority.group = &quot;black&quot;,
+                  base.level = &quot;hired&quot;)
+ print(results)</code></pre>
 <pre><code>## $reference.model
 ## Call:
 ## nnet::multinom(formula = factor_y[deltaR0] ~ cov.x[deltaR0, ], 
@@ -234,71 +238,71 @@ print(results)</code></pre>
 ## 
 ## Coefficients:
 ##                (Intercept)    cov.x[deltaR0, ]college 
-##                103.0117188                -20.8644362 
+##                 68.6237952                -12.7814767 
 ## cov.x[deltaR0, ]experience      cov.x[deltaR0, ]score 
-##                 -6.0120919                 -0.9043473 
+##                 -4.4028356                 -0.6251842 
 ## 
-## Residual Deviance: 0.8405496 
-## AIC: 8.84055 
+## Residual Deviance: 2.476499 
+## AIC: 10.4765 
 ## 
 ## $sample.sizes
 ##           
 ##            black white
-##   hired        3     7
-##   rejected    47    43
+##   hired        2     8
+##   rejected    48    42
 ## 
 ## $observed.estimate
 ##             black
-## level=hired  0.06
+## level=hired  0.04
 ## 
 ## $percent.unexplained
 ##             black
-## level=hired 31.29
+## level=hired 18.73
 ## 
 ## $overall.disp
 ##             black
-## level=hired  0.08
+## level=hired  0.12
 ## 
 ## $unexplained.disp
 ##             black
-## level=hired 0.025
+## level=hired 0.022
 ## 
 ## $unexp.disp.variance
-##               black
-## level=hired 0.00038</code></pre>
+##             black
+## level=hired 3e-04</code></pre>
 <p>We can use the results for unexplained disparity and unexplained disparity variance to perform a simple asymptotic test to check for significance.</p>
-<pre class="r"><code>#test H0: unexplained.disp = 0
-#vs.  H1: unexplained.disp &gt; 0
-
-zscore = results$unexplained.disp/sqrt(results$unexp.disp.variance)
-
-print(paste(&quot;P-value:&quot;, pnorm(zscore[[1]],lower.tail=FALSE)))</code></pre>
-<pre><code>## [1] &quot;P-value: 0.0998383957532196&quot;</code></pre>
+<pre class="r"><code> #test H0: unexplained.disp = 0
+ #vs.  H1: unexplained.disp &gt; 0
+ 
+ zscore = results$unexplained.disp/sqrt(results$unexp.disp.variance)
+ 
+ print(paste(&quot;P-value:&quot;, pnorm(zscore[[1]],lower.tail=FALSE)))</code></pre>
+<pre><code>## [1] &quot;P-value: 0.102011935237218&quot;</code></pre>
 <p>Now let us perform the same analysis on Employer B. We will assume Employer B is deliberately discriminating against black applicants by cutting <code>totals</code> for black applicants in half before ranking them.</p>
-<pre class="r"><code># Cut totals in half for black applicants
-
-totals.A = totals
-totals.B = totals
-totals.B[race == &quot;black&quot;] = totals[race == &quot;black&quot;]/2
-
-# Choose top ten totals and define response variable
-top.10.idx = order(totals.B,decreasing=T)[1:10]
-hired = rep(&quot;rejected&quot;,n)
-hired[top.10.idx] = &quot;hired&quot;
-
-data = data.frame(hired = hired,
-                  race = race,
-                  college = college,
-                  experience = experience,
-                  score = score)
-results = pb.fit(hired ~ college + experience + score,
-                 data = data,
-                 family = &quot;multinomial&quot;,
-                 disparity.group = &quot;race&quot;,
-                 majority.group = &quot;white&quot;,
-                 minority.group = &quot;black&quot;,
-                 base.level = &quot;hired&quot;)
-print(results)</code></pre>
+<pre class="r"><code> # Cut totals in half for black applicants
+ 
+ totals.A = totals
+ totals.B = totals
+ totals.B[race == &quot;black&quot;] = totals[race == &quot;black&quot;]/2
+ 
+ # Choose top ten totals and define response variable
+ top.10.idx = order(totals.B,decreasing=T)[1:10]
+ hired = rep(&quot;rejected&quot;,n)
+ hired[top.10.idx] = &quot;hired&quot;
+ 
+ data = data.frame(hired = hired,
+                   race = race,
+                   college = college,
+                   experience = experience,
+                   score = score)
+ results = pb.fit(hired ~ college + experience + score,
+                  data = data,
+                  family = &quot;multinomial&quot;,
+                  disparity.group = &quot;race&quot;,
+                  majority.group = &quot;white&quot;,
+                  minority.group = &quot;black&quot;,
+                  base.level = &quot;hired&quot;)
+ print(results)</code></pre>
 <pre><code>## $reference.model
 ## Call:
 ## nnet::multinom(formula = factor_y[deltaR0] ~ cov.x[deltaR0, ], 
@@ -306,12 +310,12 @@ print(results)</code></pre>
 ## 
 ## Coefficients:
 ##                (Intercept)    cov.x[deltaR0, ]college 
-##                 138.592756                 -48.012385 
+##                 69.2529805                -13.2964145 
 ## cov.x[deltaR0, ]experience      cov.x[deltaR0, ]score 
-##                  -8.855543                  -1.036456 
+##                 -6.1568844                 -0.6114062 
 ## 
-## Residual Deviance: 2.185721 
-## AIC: 10.18572 
+## Residual Deviance: 1.841306 
+## AIC: 9.841306 
 ## 
 ## $sample.sizes
 ##           
@@ -325,7 +329,7 @@ print(results)</code></pre>
 ## 
 ## $percent.unexplained
 ##             black
-## level=hired 68.52
+## level=hired  32.5
 ## 
 ## $overall.disp
 ##             black
@@ -333,20 +337,167 @@ print(results)</code></pre>
 ## 
 ## $unexplained.disp
 ##             black
-## level=hired  0.14
+## level=hired 0.065
 ## 
 ## $unexp.disp.variance
-##              black
-## level=hired 0.0023</code></pre>
+##             black
+## level=hired 0.001</code></pre>
 <p>Now let’s perform the test again and see if we notice any difference in the p-value.</p>
-<pre class="r"><code>#test H0: unexplained.disp = 0
-#vs.  H1: unexplained.disp &gt; 0
-
-zscore = results$unexplained.disp/sqrt(results$unexp.disp.variance)
-
-print(paste(&quot;P-value:&quot;, pnorm(zscore[[1]],lower.tail=FALSE)))</code></pre>
-<pre><code>## [1] &quot;P-value: 0.00175464485237253&quot;</code></pre>
+<pre class="r"><code> #test H0: unexplained.disp = 0
+ #vs.  H1: unexplained.disp &gt; 0
+ 
+ zscore = results$unexplained.disp/sqrt(results$unexp.disp.variance)
+ 
+ print(paste(&quot;P-value:&quot;, pnorm(zscore[[1]],lower.tail=FALSE)))</code></pre>
+<pre><code>## [1] &quot;P-value: 0.0199163096223707&quot;</code></pre>
 <p>We need to be very careful when interpreting the results of our analysis, especially in a high stakes scenario such as a legal battle. Neglecting to take adequate care could result in failing to render justice to a guilty party or falsely accusing an innocent party. Model assumptions are critical and can heavily influence the outcome of the analysis. In particular, we must be reasonably sure that there do not exist unobserved covariates that affect the hiring decision, but which would be legitimate to use in selecting the best candidate. In this simple model we have the ability to know exactly which variables are used in making hiring decisions. However, in the real world this can be more difficult.</p>
+</div>
+<div id="ppo-simulation" class="section level3">
+<h3>PPO Simulation</h3>
+<p>Now let’s consider a healthcare scenario. It has been reported that white patients are often perceived as having a lower pain tolerance than black patients, and as a result, may be given more frequent or higher doses of pain medications. Let us imagine an artificial scenario where we can apply the <code>pb.fit</code> method to test whether discrimination is occurring.</p>
+<p>Suppose we have 500 white patients and 500 black patients having pain symptoms. These symptoms may be the result of various diseases. Perhaps disease A is more common in the white population, and disease B is more common in the black population. Hence, if disease A tends to elicit more pain symptoms than disease B, it is plausible that average assessed pain levels are actually less in the black patients than in the white patients. Thus, to detect discrimination we will have to do a PB analysis.</p>
+<p>Let us assume two covariates. First, we consider <code>disease_type</code> which is a binary variable, taking value 0 if the patient has (known to be more painful) disease A and value 1 if the patient has (known to be less painful) disease B. In addition, we may consider a patient’s reported pain level, <code>reported</code>, between 0 and 10, which we will assume not to be directly affected by the patient’s race.</p>
+<pre class="r"><code># Define the race category, and the two covariates
+
+n_white = 500
+n_black = 500
+n = n_white + n_black
+
+race = rep(&quot;black&quot;, n)
+race[1:n_white] = &quot;white&quot;
+
+# bernoulli with higher success probability for black patients
+disease_type = rep(0,n)
+disease_type[race == &quot;white&quot;] = rbinom(n_white,size = 1, prob = .4)
+disease_type[race == &quot;black&quot;] = rbinom(n_black,size = 1, prob = .6)
+
+# reported should be higher for patients with disease B
+reported = rep(0,n)
+reported[disease_type == 0] = round(runif(sum(disease_type == 0),0,10))
+reported[disease_type == 1] = round(runif(sum(disease_type == 1),0,10))</code></pre>
+<p>Let us imagine that a biased doctor is estimating the patient’s true pain level on a scale from 0 to 10 based on the covariates given. Suppose the doctor uses a linear combination of the covariates, together with race, to make a decision.</p>
+<pre class="r"><code> # Compute a pain score based on disease type and reported pain level + noise
+ score = (2*disease_type + reported + rnorm(n))/12
+ score = score*10
+ score = pmax(0,pmin(10,score))
+ 
+ # for black patients, multiply score by a factor of J
+ J = .5
+ score[race == &quot;black&quot;] = score[race == &quot;black&quot;]*J
+ 
+ # Round the scores to get an assessed pain level
+ assessed = round(score)</code></pre>
+<p>Now let us test our pb.fit function on this simulated scenario. We will assume a proportional odds model.</p>
+<pre class="r"><code> data = data.frame(assessed = assessed,
+                   race = race,
+                   disease_type = disease_type,
+                   reported = reported)
+ results = pb.fit(assessed ~ disease_type + reported,
+                  data = data,
+                  family = &quot;ordinal&quot;,
+                  disparity.group = &quot;race&quot;,
+                  majority.group = &quot;white&quot;,
+                  minority.group = &quot;black&quot;,
+                  prop.odds.fail = c(&quot;reported&quot;))
+ print(results)</code></pre>
+<pre><code>## $reference.model
+## formula: as.factor(y[deltaR0]) ~ cov.x[deltaR0, ]
+## nominal: ~cov.z[deltaR0, ]
+## 
+##  link  threshold nobs logLik  AIC     niter max.grad cond.H 
+##  logit flexible  500  -597.32 1236.63 7(0)  7.83e-09 8.1e+04
+## 
+## Coefficients:
+## cov.x[deltaR0, ] 
+##            3.646 
+## 
+## Threshold coefficients:
+##                  0|1    1|2    2|3    3|4    4|5    5|6    6|7    7|8    8|9   
+## (Intercept)       1.707  3.685  5.363  7.157  9.940 12.650 15.450 16.900 15.567
+## cov.z[deltaR0, ] -2.068 -1.888 -1.774 -1.677 -1.826 -1.973 -2.041 -1.915 -1.484
+##                  9|10  
+## (Intercept)      26.122
+## cov.z[deltaR0, ] -2.384
+## 
+## $sample.sizes
+##     
+##      black white
+##   0     25    37
+##   1     86    40
+##   10     0    14
+##   2    124    43
+##   3    129    53
+##   4    104    60
+##   5     32    51
+##   6      0    62
+##   7      0    63
+##   8      0    50
+##   9      0    27
+## 
+## $observed.estimate
+##         black
+## level=0 0.050
+## level=1 0.170
+## level=2 0.250
+## level=3 0.260
+## level=4 0.210
+## level=5 0.064
+## level=6 0.000
+## level=7 0.000
+## level=8 0.000
+## level=9 0.000
+## 
+## $percent.unexplained
+##          black
+## level=0 -69.01
+## level=1 120.09
+## level=2 101.88
+## level=3  98.14
+## level=4  88.27
+## level=5 117.39
+## level=6  95.69
+## level=7  96.55
+## level=8 109.25
+## level=9 164.25
+## 
+## $overall.disp
+##          black
+## level=0  0.024
+## level=1 -0.092
+## level=2 -0.160
+## level=3 -0.150
+## level=4 -0.088
+## level=5  0.038
+## level=6  0.120
+## level=7  0.130
+## level=8  0.100
+## level=9  0.054
+## 
+## $unexplained.disp
+##          black
+## level=0 -0.017
+## level=1 -0.110
+## level=2 -0.170
+## level=3 -0.150
+## level=4 -0.078
+## level=5  0.045
+## level=6  0.120
+## level=7  0.120
+## level=8  0.110
+## level=9  0.089
+## 
+## $unexp.disp.variance
+##           black
+## level=0 7.5e-05
+## level=1 2.8e-04
+## level=2 5.2e-04
+## level=3 6.8e-04
+## level=4 7.0e-04
+## level=5 3.6e-04
+## level=6 2.2e-04
+## level=7 2.2e-04
+## level=8 2.4e-04
+## level=9 2.1e-04</code></pre>
 </div>
 
 

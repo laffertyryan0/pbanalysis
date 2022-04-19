@@ -138,8 +138,8 @@ third has no relationship to the applicant's race.
 \begin{Highlighting}[]
 \CommentTok{\# Define the race category, and the three covariates}
 
-\NormalTok{n\_white }\OtherTok{=} \DecValTok{500}
-\NormalTok{n\_black }\OtherTok{=} \DecValTok{500}
+\NormalTok{n\_white }\OtherTok{=} \DecValTok{50}
+\NormalTok{n\_black }\OtherTok{=} \DecValTok{50}
 \NormalTok{n }\OtherTok{=}\NormalTok{ n\_white }\SpecialCharTok{+}\NormalTok{ n\_black}
 
 \NormalTok{race }\OtherTok{=} \FunctionTok{rep}\NormalTok{(}\StringTok{"black"}\NormalTok{, n)}
@@ -152,7 +152,7 @@ third has no relationship to the applicant's race.
 
 \CommentTok{\# exponential with higher mean for whites}
 \NormalTok{experience }\OtherTok{=} \FunctionTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{,n)}
-\NormalTok{experience[race }\SpecialCharTok{==} \StringTok{"white"}\NormalTok{] }\OtherTok{=} \FunctionTok{round}\NormalTok{(}\FunctionTok{rexp}\NormalTok{(n\_white,}\AttributeTok{rate=}\DecValTok{1}\SpecialCharTok{/}\DecValTok{2}\NormalTok{))}
+\NormalTok{experience[race }\SpecialCharTok{==} \StringTok{"white"}\NormalTok{] }\OtherTok{=} \FunctionTok{round}\NormalTok{(}\FunctionTok{rexp}\NormalTok{(n\_white,}\AttributeTok{rate=}\DecValTok{1}\SpecialCharTok{/}\FloatTok{1.5}\NormalTok{))}
 \NormalTok{experience[race }\SpecialCharTok{==} \StringTok{"black"}\NormalTok{] }\OtherTok{=} \FunctionTok{round}\NormalTok{(}\FunctionTok{rexp}\NormalTok{(n\_black,}\AttributeTok{rate=}\DecValTok{1}\SpecialCharTok{/}\DecValTok{1}\NormalTok{))}
 
 \CommentTok{\# approx normally distributed but cut off at 0 and 100}
@@ -173,22 +173,21 @@ top ten applicants with the highest totals and reject the rest.
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\CommentTok{\# First randomly generate some positive coefficients for hiring function}
-\NormalTok{coefs }\OtherTok{=} \FunctionTok{runif}\NormalTok{(}\DecValTok{3}\NormalTok{)}
-
-\CommentTok{\# Normalize the covariates }
-\NormalTok{norm\_college }\OtherTok{=}\NormalTok{ (college}\SpecialCharTok{{-}}\FunctionTok{mean}\NormalTok{(college))}\SpecialCharTok{/}\FunctionTok{sd}\NormalTok{(college)}
-\NormalTok{norm\_experience }\OtherTok{=}\NormalTok{ (experience}\SpecialCharTok{{-}}\FunctionTok{mean}\NormalTok{(experience))}\SpecialCharTok{/}\FunctionTok{sd}\NormalTok{(college) }
-\NormalTok{norm\_score }\OtherTok{=}\NormalTok{ (score }\SpecialCharTok{{-}} \FunctionTok{mean}\NormalTok{(score))}\SpecialCharTok{/}\FunctionTok{sd}\NormalTok{(score)}
-
-\CommentTok{\# Compute weighted totals}
-\NormalTok{totals }\OtherTok{=}\NormalTok{ coefs[}\DecValTok{1}\NormalTok{]}\SpecialCharTok{*}\NormalTok{norm\_college }\SpecialCharTok{+}\NormalTok{ coefs[}\DecValTok{2}\NormalTok{]}\SpecialCharTok{*}\NormalTok{norm\_experience }\SpecialCharTok{+}\NormalTok{ coefs[}\DecValTok{3}\NormalTok{]}\SpecialCharTok{*}\NormalTok{norm\_score}
-\NormalTok{totals[race }\SpecialCharTok{==} \StringTok{"black"}\NormalTok{] }\OtherTok{=}\NormalTok{ totals[race }\SpecialCharTok{==} \StringTok{"black"}\NormalTok{]}
-
-\CommentTok{\# Choose top ten totals and define response variable}
-\NormalTok{top.}\FloatTok{10.}\NormalTok{idx }\OtherTok{=} \FunctionTok{order}\NormalTok{(totals,}\AttributeTok{decreasing=}\NormalTok{T)[}\DecValTok{1}\SpecialCharTok{:}\DecValTok{10}\NormalTok{]}
-\NormalTok{hired }\OtherTok{=} \FunctionTok{rep}\NormalTok{(}\StringTok{"rejected"}\NormalTok{,n)}
-\NormalTok{hired[top.}\FloatTok{10.}\NormalTok{idx] }\OtherTok{=} \StringTok{"hired"}
+ \CommentTok{\# First randomly generate some positive coefficients for hiring function}
+\NormalTok{ coefs }\OtherTok{=} \FunctionTok{runif}\NormalTok{(}\DecValTok{3}\NormalTok{)}
+ 
+ \CommentTok{\# Normalize the covariates }
+\NormalTok{ norm\_college }\OtherTok{=}\NormalTok{ (college}\SpecialCharTok{{-}}\FunctionTok{mean}\NormalTok{(college))}\SpecialCharTok{/}\FunctionTok{sd}\NormalTok{(college)}
+\NormalTok{ norm\_experience }\OtherTok{=}\NormalTok{ (experience}\SpecialCharTok{{-}}\FunctionTok{mean}\NormalTok{(experience))}\SpecialCharTok{/}\FunctionTok{sd}\NormalTok{(college) }
+\NormalTok{ norm\_score }\OtherTok{=}\NormalTok{ (score }\SpecialCharTok{{-}} \FunctionTok{mean}\NormalTok{(score))}\SpecialCharTok{/}\FunctionTok{sd}\NormalTok{(score)}
+ 
+ \CommentTok{\# Compute weighted totals}
+\NormalTok{ totals }\OtherTok{=}\NormalTok{ coefs[}\DecValTok{1}\NormalTok{]}\SpecialCharTok{*}\NormalTok{norm\_college }\SpecialCharTok{+}\NormalTok{ coefs[}\DecValTok{2}\NormalTok{]}\SpecialCharTok{*}\NormalTok{norm\_experience }\SpecialCharTok{+}\NormalTok{ coefs[}\DecValTok{3}\NormalTok{]}\SpecialCharTok{*}\NormalTok{norm\_score}
+ 
+ \CommentTok{\# Choose top ten totals and define response variable}
+\NormalTok{ top.}\FloatTok{10.}\NormalTok{idx }\OtherTok{=} \FunctionTok{order}\NormalTok{(totals,}\AttributeTok{decreasing=}\NormalTok{T)[}\DecValTok{1}\SpecialCharTok{:}\DecValTok{10}\NormalTok{]}
+\NormalTok{ hired }\OtherTok{=} \FunctionTok{rep}\NormalTok{(}\StringTok{"rejected"}\NormalTok{,n)}
+\NormalTok{ hired[top.}\FloatTok{10.}\NormalTok{idx] }\OtherTok{=} \StringTok{"hired"}
 \end{Highlighting}
 \end{Shaded}
 
@@ -197,44 +196,378 @@ assume a binary logistic model.
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{data }\OtherTok{=} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{hired =}\NormalTok{ hired,}
-                  \AttributeTok{race =}\NormalTok{ race,}
-                  \AttributeTok{college =}\NormalTok{ college,}
-                  \AttributeTok{experience =}\NormalTok{ experience,}
-                  \AttributeTok{score =}\NormalTok{ score)}
-\NormalTok{results }\OtherTok{=} \FunctionTok{pb.fit}\NormalTok{(hired }\SpecialCharTok{\textasciitilde{}}\NormalTok{ college }\SpecialCharTok{+}\NormalTok{ experience }\SpecialCharTok{+}\NormalTok{ score,}
-                 \AttributeTok{data =}\NormalTok{ data,}
-                 \AttributeTok{family =} \StringTok{"multinomial"}\NormalTok{,}
-                 \AttributeTok{disparity.group =} \StringTok{"race"}\NormalTok{,}
-                 \AttributeTok{majority.group =} \StringTok{"white"}\NormalTok{,}
-                 \AttributeTok{minority.group =} \StringTok{"black"}\NormalTok{,}
-                 \AttributeTok{base.level =} \StringTok{"hired"}\NormalTok{)}
-\FunctionTok{print}\NormalTok{(results)}
+\NormalTok{ data }\OtherTok{=} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{hired =}\NormalTok{ hired,}
+                   \AttributeTok{race =}\NormalTok{ race,}
+                   \AttributeTok{college =}\NormalTok{ college,}
+                   \AttributeTok{experience =}\NormalTok{ experience,}
+                   \AttributeTok{score =}\NormalTok{ score)}
+\NormalTok{ results }\OtherTok{=} \FunctionTok{pb.fit}\NormalTok{(hired }\SpecialCharTok{\textasciitilde{}}\NormalTok{ college }\SpecialCharTok{+}\NormalTok{ experience }\SpecialCharTok{+}\NormalTok{ score,}
+                  \AttributeTok{data =}\NormalTok{ data,}
+                  \AttributeTok{family =} \StringTok{"multinomial"}\NormalTok{,}
+                  \AttributeTok{disparity.group =} \StringTok{"race"}\NormalTok{,}
+                  \AttributeTok{majority.group =} \StringTok{"white"}\NormalTok{,}
+                  \AttributeTok{minority.group =} \StringTok{"black"}\NormalTok{,}
+                  \AttributeTok{base.level =} \StringTok{"hired"}\NormalTok{)}
+ \FunctionTok{print}\NormalTok{(results)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{verbatim}
+## $reference.model
+## Call:
+## nnet::multinom(formula = factor_y[deltaR0] ~ cov.x[deltaR0, ], 
+##     weights = w[deltaR0], trace = F)
+## 
+## Coefficients:
+##                (Intercept)    cov.x[deltaR0, ]college 
+##                 53.7664732                -20.0356323 
+## cov.x[deltaR0, ]experience      cov.x[deltaR0, ]score 
+##                 -8.4280023                 -0.2299871 
+## 
+## Residual Deviance: 0.1000077 
+## AIC: 8.100008 
+## 
+## $sample.sizes
+##           
+##            black white
+##   hired        5     5
+##   rejected    45    45
+## 
+## $observed.estimate
+##             black
+## level=hired   0.1
+## 
+## $percent.unexplained
+##             black
+## level=hired  -Inf
+## 
+## $overall.disp
+##             black
+## level=hired     0
+## 
+## $unexplained.disp
+##              black
+## level=hired -0.043
+## 
+## $unexp.disp.variance
+##               black
+## level=hired 0.00074
+\end{verbatim}
+
+We can use the results for unexplained disparity and unexplained
+disparity variance to perform a simple asymptotic test to check for
+significance.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+ \CommentTok{\#test H0: unexplained.disp = 0}
+ \CommentTok{\#vs.  H1: unexplained.disp \textgreater{} 0}
+ 
+\NormalTok{ zscore }\OtherTok{=}\NormalTok{ results}\SpecialCharTok{$}\NormalTok{unexplained.disp}\SpecialCharTok{/}\FunctionTok{sqrt}\NormalTok{(results}\SpecialCharTok{$}\NormalTok{unexp.disp.variance)}
+ 
+ \FunctionTok{print}\NormalTok{(}\FunctionTok{paste}\NormalTok{(}\StringTok{"P{-}value:"}\NormalTok{, }\FunctionTok{pnorm}\NormalTok{(zscore[[}\DecValTok{1}\NormalTok{]],}\AttributeTok{lower.tail=}\ConstantTok{FALSE}\NormalTok{)))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] "P-value: 0.943027983996444"
+\end{verbatim}
+
+Now let us perform the same analysis on Employer B. We will assume
+Employer B is deliberately discriminating against black applicants by
+cutting \texttt{totals} for black applicants in half before ranking
+them.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+ \CommentTok{\# Cut totals in half for black applicants}
+ 
+\NormalTok{ totals.A }\OtherTok{=}\NormalTok{ totals}
+\NormalTok{ totals.B }\OtherTok{=}\NormalTok{ totals}
+\NormalTok{ totals.B[race }\SpecialCharTok{==} \StringTok{"black"}\NormalTok{] }\OtherTok{=}\NormalTok{ totals[race }\SpecialCharTok{==} \StringTok{"black"}\NormalTok{]}\SpecialCharTok{/}\DecValTok{2}
+ 
+ \CommentTok{\# Choose top ten totals and define response variable}
+\NormalTok{ top.}\FloatTok{10.}\NormalTok{idx }\OtherTok{=} \FunctionTok{order}\NormalTok{(totals.B,}\AttributeTok{decreasing=}\NormalTok{T)[}\DecValTok{1}\SpecialCharTok{:}\DecValTok{10}\NormalTok{]}
+\NormalTok{ hired }\OtherTok{=} \FunctionTok{rep}\NormalTok{(}\StringTok{"rejected"}\NormalTok{,n)}
+\NormalTok{ hired[top.}\FloatTok{10.}\NormalTok{idx] }\OtherTok{=} \StringTok{"hired"}
+ 
+\NormalTok{ data }\OtherTok{=} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{hired =}\NormalTok{ hired,}
+                   \AttributeTok{race =}\NormalTok{ race,}
+                   \AttributeTok{college =}\NormalTok{ college,}
+                   \AttributeTok{experience =}\NormalTok{ experience,}
+                   \AttributeTok{score =}\NormalTok{ score)}
+\NormalTok{ results }\OtherTok{=} \FunctionTok{pb.fit}\NormalTok{(hired }\SpecialCharTok{\textasciitilde{}}\NormalTok{ college }\SpecialCharTok{+}\NormalTok{ experience }\SpecialCharTok{+}\NormalTok{ score,}
+                  \AttributeTok{data =}\NormalTok{ data,}
+                  \AttributeTok{family =} \StringTok{"multinomial"}\NormalTok{,}
+                  \AttributeTok{disparity.group =} \StringTok{"race"}\NormalTok{,}
+                  \AttributeTok{majority.group =} \StringTok{"white"}\NormalTok{,}
+                  \AttributeTok{minority.group =} \StringTok{"black"}\NormalTok{,}
+                  \AttributeTok{base.level =} \StringTok{"hired"}\NormalTok{)}
+ \FunctionTok{print}\NormalTok{(results)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## $reference.model
+## Call:
+## nnet::multinom(formula = factor_y[deltaR0] ~ cov.x[deltaR0, ], 
+##     weights = w[deltaR0], trace = F)
+## 
+## Coefficients:
+##                (Intercept)    cov.x[deltaR0, ]college 
+##                 89.1101858                -35.2033928 
+## cov.x[deltaR0, ]experience      cov.x[deltaR0, ]score 
+##                -23.2222025                 -0.2854494 
+## 
+## Residual Deviance: 0.1343559 
+## AIC: 8.134356 
+## 
 ## $sample.sizes
 ##           
 ##            black white
 ##   hired        1     9
-##   rejected   499   491
+##   rejected    49    41
+## 
+## $observed.estimate
+##             black
+## level=hired  0.02
 ## 
 ## $percent.unexplained
 ##             black
-## level=hired  7.23
+## level=hired  62.7
 ## 
 ## $overall.disp
 ##             black
-## level=hired 0.016
+## level=hired  0.16
 ## 
 ## $unexplained.disp
-##              black
-## level=hired 0.0012
+##             black
+## level=hired   0.1
 ## 
 ## $unexp.disp.variance
-##               black
-## level=hired 3.1e-06
+##              black
+## level=hired 0.0018
+\end{verbatim}
+
+Now let's perform the test again and see if we notice any difference in
+the p-value.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+ \CommentTok{\#test H0: unexplained.disp = 0}
+ \CommentTok{\#vs.  H1: unexplained.disp \textgreater{} 0}
+ 
+\NormalTok{ zscore }\OtherTok{=}\NormalTok{ results}\SpecialCharTok{$}\NormalTok{unexplained.disp}\SpecialCharTok{/}\FunctionTok{sqrt}\NormalTok{(results}\SpecialCharTok{$}\NormalTok{unexp.disp.variance)}
+ 
+ \FunctionTok{print}\NormalTok{(}\FunctionTok{paste}\NormalTok{(}\StringTok{"P{-}value:"}\NormalTok{, }\FunctionTok{pnorm}\NormalTok{(zscore[[}\DecValTok{1}\NormalTok{]],}\AttributeTok{lower.tail=}\ConstantTok{FALSE}\NormalTok{)))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] "P-value: 0.0092110627270495"
+\end{verbatim}
+
+We need to be very careful when interpreting the results of our
+analysis, especially in a high stakes scenario such as a legal battle.
+Neglecting to take adequate care could result in failing to render
+justice to a guilty party or falsely accusing an innocent party. Model
+assumptions are critical and can heavily influence the outcome of the
+analysis. In particular, we must be reasonably sure that there do not
+exist unobserved covariates that affect the hiring decision, but which
+would be legitimate to use in selecting the best candidate. In this
+simple model we have the ability to know exactly which variables are
+used in making hiring decisions. However, in the real world this can be
+more difficult.
+
+\hypertarget{ppo-simulation}{%
+\subsubsection{PPO Simulation}\label{ppo-simulation}}
+
+Now let's consider a healthcare scenario. It has been reported that
+white patients are often perceived as having a lower pain tolerance than
+black patients, and as a result, may be given more frequent or higher
+doses of pain medications. Let us imagine an artificial scenario where
+we can apply the \texttt{pb.fit} method to test whether discrimination
+is occurring.
+
+Suppose we have 500 white patients and 500 black patients having pain
+symptoms. These symptoms may be the result of various diseases. Perhaps
+disease A is more common in the white population, and disease B is more
+common in the black population. Hence, if disease A tends to elicit more
+pain symptoms than disease B, it is plausible that average assessed pain
+levels are actually less in the black patients than in the white
+patients. Thus, to detect discrimination we will have to do a PB
+analysis.
+
+Let us assume two covariates. First, we consider \texttt{disease\_type}
+which is a binary variable, taking value 0 if the patient has (known to
+be more painful) disease A and value 1 if the patient has (known to be
+less painful) disease B. In addition, we may consider a patient's
+reported pain level, \texttt{reported}, between 0 and 10, which we will
+assume not to be directly affected by the patient's race.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Define the race category, and the two covariates}
+
+\NormalTok{n\_white }\OtherTok{=} \DecValTok{500}
+\NormalTok{n\_black }\OtherTok{=} \DecValTok{500}
+\NormalTok{n }\OtherTok{=}\NormalTok{ n\_white }\SpecialCharTok{+}\NormalTok{ n\_black}
+
+\NormalTok{race }\OtherTok{=} \FunctionTok{rep}\NormalTok{(}\StringTok{"black"}\NormalTok{, n)}
+\NormalTok{race[}\DecValTok{1}\SpecialCharTok{:}\NormalTok{n\_white] }\OtherTok{=} \StringTok{"white"}
+
+\CommentTok{\# bernoulli with higher success probability for black patients}
+\NormalTok{disease\_type }\OtherTok{=} \FunctionTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{,n)}
+\NormalTok{disease\_type[race }\SpecialCharTok{==} \StringTok{"white"}\NormalTok{] }\OtherTok{=} \FunctionTok{rbinom}\NormalTok{(n\_white,}\AttributeTok{size =} \DecValTok{1}\NormalTok{, }\AttributeTok{prob =}\NormalTok{ .}\DecValTok{4}\NormalTok{)}
+\NormalTok{disease\_type[race }\SpecialCharTok{==} \StringTok{"black"}\NormalTok{] }\OtherTok{=} \FunctionTok{rbinom}\NormalTok{(n\_black,}\AttributeTok{size =} \DecValTok{1}\NormalTok{, }\AttributeTok{prob =}\NormalTok{ .}\DecValTok{6}\NormalTok{)}
+
+\CommentTok{\# reported should be higher for patients with disease B}
+\NormalTok{reported }\OtherTok{=} \FunctionTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{,n)}
+\NormalTok{reported[disease\_type }\SpecialCharTok{==} \DecValTok{0}\NormalTok{] }\OtherTok{=} \FunctionTok{round}\NormalTok{(}\FunctionTok{runif}\NormalTok{(}\FunctionTok{sum}\NormalTok{(disease\_type }\SpecialCharTok{==} \DecValTok{0}\NormalTok{),}\DecValTok{0}\NormalTok{,}\DecValTok{10}\NormalTok{))}
+\NormalTok{reported[disease\_type }\SpecialCharTok{==} \DecValTok{1}\NormalTok{] }\OtherTok{=} \FunctionTok{round}\NormalTok{(}\FunctionTok{runif}\NormalTok{(}\FunctionTok{sum}\NormalTok{(disease\_type }\SpecialCharTok{==} \DecValTok{1}\NormalTok{),}\DecValTok{0}\NormalTok{,}\DecValTok{10}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+Let us imagine that a biased doctor is estimating the patient's true
+pain level on a scale from 0 to 10 based on the covariates given.
+Suppose the doctor uses a linear combination of the covariates, together
+with race, to make a decision.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+ \CommentTok{\# Compute a pain score based on disease type and reported pain level + noise}
+\NormalTok{ score }\OtherTok{=}\NormalTok{ (}\DecValTok{2}\SpecialCharTok{*}\NormalTok{disease\_type }\SpecialCharTok{+}\NormalTok{ reported }\SpecialCharTok{+} \FunctionTok{rnorm}\NormalTok{(n))}\SpecialCharTok{/}\DecValTok{12}
+\NormalTok{ score }\OtherTok{=}\NormalTok{ score}\SpecialCharTok{*}\DecValTok{10}
+\NormalTok{ score }\OtherTok{=} \FunctionTok{pmax}\NormalTok{(}\DecValTok{0}\NormalTok{,}\FunctionTok{pmin}\NormalTok{(}\DecValTok{10}\NormalTok{,score))}
+ 
+ \CommentTok{\# for black patients, multiply score by a factor of J}
+\NormalTok{ J }\OtherTok{=}\NormalTok{ .}\DecValTok{5}
+\NormalTok{ score[race }\SpecialCharTok{==} \StringTok{"black"}\NormalTok{] }\OtherTok{=}\NormalTok{ score[race }\SpecialCharTok{==} \StringTok{"black"}\NormalTok{]}\SpecialCharTok{*}\NormalTok{J}
+ 
+ \CommentTok{\# Round the scores to get an assessed pain level}
+\NormalTok{ assessed }\OtherTok{=} \FunctionTok{round}\NormalTok{(score)}
+\end{Highlighting}
+\end{Shaded}
+
+Now let us test our pb.fit function on this simulated scenario. We will
+assume a proportional odds model.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{ data }\OtherTok{=} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{assessed =}\NormalTok{ assessed,}
+                   \AttributeTok{race =}\NormalTok{ race,}
+                   \AttributeTok{disease\_type =}\NormalTok{ disease\_type,}
+                   \AttributeTok{reported =}\NormalTok{ reported)}
+\NormalTok{ results }\OtherTok{=} \FunctionTok{pb.fit}\NormalTok{(assessed }\SpecialCharTok{\textasciitilde{}}\NormalTok{ disease\_type }\SpecialCharTok{+}\NormalTok{ reported,}
+                  \AttributeTok{data =}\NormalTok{ data,}
+                  \AttributeTok{family =} \StringTok{"ordinal"}\NormalTok{,}
+                  \AttributeTok{disparity.group =} \StringTok{"race"}\NormalTok{,}
+                  \AttributeTok{majority.group =} \StringTok{"white"}\NormalTok{,}
+                  \AttributeTok{minority.group =} \StringTok{"black"}\NormalTok{,}
+                  \AttributeTok{prop.odds.fail =} \FunctionTok{c}\NormalTok{(}\StringTok{"reported"}\NormalTok{))}
+ \FunctionTok{print}\NormalTok{(results)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## $reference.model
+## formula: as.factor(y[deltaR0]) ~ cov.x[deltaR0, ]
+## nominal: ~cov.z[deltaR0, ]
+## 
+##  link  threshold nobs logLik  AIC     niter max.grad cond.H 
+##  logit flexible  500  -555.90 1153.80 8(0)  2.42e-13 4.0e+04
+## 
+## Coefficients:
+## cov.x[deltaR0, ] 
+##            3.767 
+## 
+## Threshold coefficients:
+##                  0|1    1|2    2|3    3|4    4|5    5|6    6|7    7|8    8|9   
+## (Intercept)       1.624  3.934  5.495  9.028 11.067 14.957 16.083 16.598 19.134
+## cov.z[deltaR0, ] -2.337 -2.661 -1.850 -2.085 -2.105 -2.305 -2.068 -1.836 -1.878
+##                  9|10  
+## (Intercept)      26.214
+## cov.z[deltaR0, ] -2.459
+## 
+## $sample.sizes
+##     
+##      black white
+##   0     42    27
+##   1     89    32
+##   10     0    22
+##   2    115    61
+##   3    125    68
+##   4     88    49
+##   5     41    66
+##   6      0    59
+##   7      0    51
+##   8      0    41
+##   9      0    24
+## 
+## $observed.estimate
+##         black
+## level=0 0.084
+## level=1 0.180
+## level=2 0.230
+## level=3 0.250
+## level=4 0.180
+## level=5 0.082
+## level=6 0.000
+## level=7 0.000
+## level=8 0.000
+## level=9 0.000
+## 
+## $percent.unexplained
+##          black
+## level=0 114.51
+## level=1 109.07
+## level=2 115.79
+## level=3 106.68
+## level=4 114.64
+## level=5 128.62
+## level=6 108.80
+## level=7 102.75
+## level=8 112.57
+## level=9 121.02
+## 
+## $overall.disp
+##          black
+## level=0 -0.030
+## level=1 -0.110
+## level=2 -0.110
+## level=3 -0.110
+## level=4 -0.078
+## level=5  0.050
+## level=6  0.120
+## level=7  0.100
+## level=8  0.082
+## level=9  0.048
+## 
+## $unexplained.disp
+##          black
+## level=0 -0.034
+## level=1 -0.120
+## level=2 -0.130
+## level=3 -0.120
+## level=4 -0.089
+## level=5  0.064
+## level=6  0.130
+## level=7  0.100
+## level=8  0.092
+## level=9  0.058
+## 
+## $unexp.disp.variance
+##           black
+## level=0 0.00012
+## level=1 0.00033
+## level=2 0.00053
+## level=3 0.00068
+## level=4 0.00050
+## level=5 0.00047
+## level=6 0.00026
+## level=7 0.00020
+## level=8 0.00018
+## level=9 0.00013
 \end{verbatim}
 
 \end{document}
