@@ -3,9 +3,10 @@ Type: Package
 Title: Statistical Tools for Analysis of Disparities
 Version: 0.1.0
 Date: 2022-05-30
-Author: c("Ryan Lafferty", "Grace Hong", "Yan Li", "Barry Graubard")
-Maintainer: Grace Hong 
-Description: __ 
+Author: c("Ryan Lafferty", "Hyokyoung (Grace) Hong", "Yan Li", "Barry Graubard")
+Maintainer: Hyokyoung (Grace) Hong 
+Description: Assessing disparity  by modeling counterfactuals via the Peters-Belson (ref) and related Oaxaca-Blinder (ref) methods.
+We provide a unified environment to carry out dispariy analysis for both random sampling data and population-based non-random sampling survey such as National Health and Nutrition Examination Survey (NHANES). The outcomes can be continuous, binary, and ordinal outcome.
 Depends: R (>= 2.10)
 Imports: 
 License: GPL-3
