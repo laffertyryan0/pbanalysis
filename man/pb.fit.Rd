@@ -2,7 +2,7 @@
 % Please edit documentation in R/pbanalysis.r
 \name{pb.fit}
 \alias{pb.fit}
-\title{Peters-Belson Analysis Package}
+\title{Peters-Belson Analysis}
 \usage{
 pb.fit(
   formula,
@@ -55,5 +55,27 @@ to be the reference level and will always be included in the model output. By de
 model output. However, if specified, base.level will be considered as level 1, and hence forced to be included in the model output.}
 }
 \description{
-Peters-Belson Analysis Package
+Peters-Belson Analysis
+}
+\examples{
+#test code for ordinal
+
+
+data = data.frame(bmi_cat = NHANES::NHANES$BMI_WHO,
+             race = NHANES::NHANES$Race1,
+             age = NHANES::NHANES$Age,
+             poverty = NHANES::NHANES$Poverty
+             )
+data = na.omit(data)
+
+out = pb.fit(bmi_cat ~ age + poverty,
+             data = data,
+             disparity.group = "race",
+             majority.group = "White",
+             minority.group = c("Black"),
+             prop.odds.fail = c("age"),
+             family = "ordinal")
+
+print(out)
+
 }

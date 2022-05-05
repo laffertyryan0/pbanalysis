@@ -22,6 +22,7 @@
 #' @param base.level This is an optional argument that can only be used with multinomial family. For a T-level multinomial model, base.level will be assumed
 #' to be the reference level and will always be included in the model output. By default, only levels 1,2,3,...,T-1, in alphabetical ordering will be shown in the
 #' model output. However, if specified, base.level will be considered as level 1, and hence forced to be included in the model output.
+#' @example R/examples/examples_2.R
 #' @export
 pb.fit <- function(formula,                    #y~x formula including model and covariates
                    data,                       #data frame including response and racial category variable
@@ -34,14 +35,14 @@ pb.fit <- function(formula,                    #y~x formula including model and 
                    majority.group="white",     #the name or factor that represents the majority/reference group
                    minority.group=NULL,        #A list of minority groups, or NULL meaning all non-majority
                    prop.odds.fail = NULL,      #only use this for ordinal family. specifies a vector of variable names that are NOT
-                                               #assumed to meet the prop odds assumption. if it's NULL, then use regular PO model
-                                               #otherwise, use PPO model with nominal = prop.odds.fail variables
+                   #assumed to meet the prop odds assumption. if it's NULL, then use regular PO model
+                   #otherwise, use PPO model with nominal = prop.odds.fail variables
                    base.level = NULL           #only use this for multinomial family. if not set, the reference level will be the
-                                               #first level in alphabetical order. the reference level will always be included in the
-                                               #final output, so this is a way to make sure a level of interest is included
-                   ){
+                   #first level in alphabetical order. the reference level will always be included in the
+                   #final output, so this is a way to make sure a level of interest is included
+){
   #number of places to round output to
-  round_places = 2
+  round_places = 4
 
   #number of samples in dataset
   nsamp = nrow(data)
@@ -92,7 +93,7 @@ pb.fit <- function(formula,                    #y~x formula including model and 
   y = c(data[response.var.name])[[1]]                         #not sure why I need the [[1]] but I do..
   cov.x = data.matrix(data[,cov.x.names])                     #again not sure why I need data.matrix
   cov.z = data.matrix(data[,prop.odds.fail])                  #R has a really complicated type system that I do
-                                                              #not understand in the least
+  #not understand in the least
 
   #for the sake of multinomial model we employ a small trick to recognize base level
   #add a non-alphanumeric character * to the front of whichever level is the base level
@@ -133,7 +134,7 @@ pb.fit <- function(formula,                    #y~x formula including model and 
     #requires ordinal package
     options(warn=-1)
     mod = ordinal::clm(as.factor(y[deltaR0]) ~ cov.x[deltaR0,], nominal = ~cov.z[deltaR0,],
-              weights = w[deltaR0]/mean(w[deltaR0]),link="logit")
+                       weights = w[deltaR0]/mean(w[deltaR0]),link="logit")
     options(warn=0)
 
     #define T = number of levels of ordinal response variable
@@ -219,7 +220,7 @@ pb.fit <- function(formula,                    #y~x formula including model and 
     #requires ordinal package
     options(warn=-1)
     mod = MASS::polr(as.factor(y[deltaR0]) ~ cov.x[deltaR0,],
-               weights = w[deltaR0]/mean(w[deltaR0]))
+                     weights = w[deltaR0]/mean(w[deltaR0]))
     options(warn=0)
 
     #define T = number of levels of ordinal response variable
@@ -528,9 +529,6 @@ pb.fit <- function(formula,                    #y~x formula including model and 
     }
   }
 
-  ## The following is a bit .. err.. untidy
-  ## we will have to make some well-thought changes in a later commit
-
   variances = signif(data.frame(variances),round_places)
   colnames(variances) = minority.group
   if(T>1){
@@ -608,12 +606,12 @@ pb.fit <- function(formula,                    #y~x formula including model and 
     sample.sizes = table(unname(y),data[disparity.group][,])
   }
 
-  return(list(
+  obj <- list(family = family,
               reference.model = mod,
               sample.sizes = sample.sizes,
-#uncomment the following lines to include observed and predicted prevalence in outputs
-             #observed = y_ind,
-             #predicted = phat,
+              #uncomment the following lines to include observed and predicted prevalence in outputs
+              #observed = y_ind,
+              #predicted = phat,
               ref.observed = ref.observed,
               observed.mean = observed.proportion,
               estimated.mean = estimated.mean,
@@ -621,7 +619,9 @@ pb.fit <- function(formula,                    #y~x formula including model and 
               overall.disp = overall.disp,
               unexplained.disp = unexp.disp,
               unexp.disp.variance = variances)
-)
+
+  class(obj) <- "pb"
+  return(obj)
 
 }
 
@@ -646,7 +646,7 @@ pb.example = function(family = "gaussian"){
 
     print(out)
   }
-  if(family == "linear"){
+  if(family == "gaussian"){
 
     #test code for linear
 
@@ -685,4 +685,25 @@ pb.example = function(family = "gaussian"){
                  family = "ordinal")
 
     print(out)
+  }
+  return(out)
+}
+
+plot.pb <- function(obj){
+  ## for categorical response, put m separate boxes with T-1 plots in each box
+  ## where each plot has counterfactual, actual, and reference group and where
+  ## T is number of categories, m is number of non-reference groups
+  if(obj$family == "gaussian"){
+    print("No implementation for gaussian family at this time.")
+  }
+  else{
+    actuals = obj$observed.mean
+    counterfactuals = obj$estimated.mean
+    reference = obj$ref.observed
+
+  }
+}
+
+summary.pb <- function(obj){
+  ## return some summarized output
 }

@@ -4,14 +4,12 @@ Version: 0.1.0
 Date: 2022-05-30
 Title: Statistical Tools for Analysis of Disparities
 Depends: R (>= 2.10)
-Imports: ????
-Description: Assessing disparity  by modeling counterfactuals via the Peters-Belson (ref) and related Oaxaca-Blinder (ref) methods.
-We provide a unified environment to carry out dispariy analysis for both random sampling data and population-based non-random sampling survey such as National Health and Nutrition Examination Survey (NHANES). The outcomes can be continuous, binary, and ordinal outcome.
-Author: c("Ryan Lafferty", "Hyokyoung (Grace) Hong", "Yan Li", "Barry Graubard")
+Imports: ordinal, MASS, nnet, ggplot2
+Description: Assessing disparity  by modeling counterfactuals via the Peters-Belson (ref) method.
+  We provide a unified environment to carry out dispariy analysis for both random sampling data and population-based non-random sampling survey such as National Health and Nutrition Examination Survey (NHANES). The outcomes can be continuous, binary, and ordinal outcome.
+Author: Ryan Lafferty, Hyokyoung (Grace) Hong, Yan Li, Barry Graubard
 License: GPL-3
-RoxygenNote: 6.0.1
+RoxygenNote: 7.1.2
 NeedsCompilation: no
 Maintainer: Hyokyoung (Grace) Hong 
 Repository: CRAN
-
-
