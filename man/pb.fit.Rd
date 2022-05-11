@@ -2,7 +2,7 @@
 % Please edit documentation in R/pbanalysis.r
 \name{pb.fit}
 \alias{pb.fit}
-\title{Peters-Belson Analysis}
+\title{Peters-Belson model fit}
 \usage{
 pb.fit(
   formula,
@@ -55,7 +55,7 @@ to be the reference level and will always be included in the model output. By de
 model output. However, if specified, base.level will be considered as level 1, and hence forced to be included in the model output.}
 }
 \description{
-Peters-Belson Analysis
+Peters-Belson model fit
 }
 \examples{
 #test code for ordinal
@@ -75,6 +75,47 @@ out = pb.fit(bmi_cat ~ age + poverty,
              minority.group = c("Black"),
              prop.odds.fail = c("age"),
              family = "ordinal")
+
+print(out)
+
+
+#test code for binary outcome
+
+
+data = data.frame(bmi_cat = as.integer(NHANES::NHANES$BMI > 20) ,
+                  race = NHANES::NHANES$Race1,
+                  age = NHANES::NHANES$Age,
+                  poverty = NHANES::NHANES$Poverty
+)
+data = na.omit(data)
+
+out = pb.fit(bmi_cat ~ age + poverty,
+             data = data,
+             disparity.group = "race",
+             majority.group = "White",
+             minority.group = c("Black"),
+             prop.odds.fail = c("age"),
+             family = "multinomial")
+
+print(out)
+
+#test code for continuous outcome
+
+
+data = data.frame(bmi_cat = NHANES::NHANES$BMI ,
+                  race = NHANES::NHANES$Race1,
+                  age = NHANES::NHANES$Age,
+                  poverty = NHANES::NHANES$Poverty
+)
+data = na.omit(data)
+
+out = pb.fit(bmi_cat ~ age + poverty,
+             data = data,
+             disparity.group = "race",
+             majority.group = "White",
+             minority.group = c("Black"),
+             prop.odds.fail = c("age"),
+             family = "gaussian")
 
 print(out)
 
