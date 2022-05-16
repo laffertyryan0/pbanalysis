@@ -17,3 +17,4 @@ out = pb.fit(bmi_cat ~ age + poverty,
              family = "ordinal")
 
 plot(out)
+
