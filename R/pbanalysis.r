@@ -699,7 +699,9 @@ plot.pb <- function(obj){
   maj = out$ref.observed
   min = out$observed.mean
   cfc = out$estimated.mean
-  cfc.err = sqrt(out$unexp.disp.variance)*qnorm(1-alpha)
+  cfc.err = 0 # this is actually for the unexplained variance, not estimated
+  #mean --> sqrt(out$unexp.disp.variance)*qnorm(1-alpha)
+  #this needs to be fixed. For now, don't plot any error bars
 
 
   plotdf = NULL
@@ -717,7 +719,7 @@ plot.pb <- function(obj){
       plotdf = rbind(plotdf,
                      cbind(rc,rep("DG Counterfactual",dim(cfc)[1]),
                            rownames(cfc),
-                           cfc[,i],cfc[,i]-cfc.err[,i],cfc[,i]+cfc.err[,i],1)
+                           cfc[,i],cfc[,i]-cfc.err[,i],cfc[,i]+cfc.err[,i],0)
       )
   }
   colnames(plotdf) <- c("race_comparison","quantity","outcome",
