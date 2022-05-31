@@ -7,10 +7,9 @@ Depends: R (>= 2.10)
 Imports: ordinal, MASS, nnet, ggplot2
 Description: Assessing disparity  by modeling counterfactuals via the Peters-Belson (ref) method.
   We provide a unified environment to carry out dispariy analysis for both random sampling data and population-based non-random sampling survey such as National Health and Nutrition Examination Survey (NHANES). The outcomes can be continuous, binary, and ordinal outcome.
-Author: Ryan Lafferty, Hyokyoung (Grace) Hong, Yan Li, Barry Graubard
 Authors@R: c(person("Ryan","Lafferty", email = "laffertyryan0@gmail.com",role =
-    c("aut")), person("Hyokyoung (Grace)", "Hong", role =
-    c("aut")),person("Yan","Li",role =
+    c("aut")), person("Hyokyoung (Grace)", "Hong", email = "grace.hong@nih.gov", role =
+    c("aut","cre")),person("Yan","Li",role =
     c("aut")),person("Barry","Graubard",role =
     c("aut")))
 License: GPL-3
