@@ -488,7 +488,6 @@ pb.fit <- function(formula,                    #y~x formula including model and 
     unexp.disp[,k] = phat.R0.Rk[,k] - pRk[,k]                           #there is one component for each minority group
     overall.disp[,k] = pR0-pRk[,k]
   }
-
   pct.unexp = 100*(unexp.disp/overall.disp)
   observed.proportion = pRk
   estimated.mean = phat.R0.Rk
@@ -696,9 +695,9 @@ plot.pb <- function(obj){
   ## where each plot has counterfactual, actual, and reference group and where
   ## T is number of categories, m is number of non-reference groups
   alpha = .05
-  maj = out$ref.observed
-  min = out$observed.mean
-  cfc = out$estimated.mean
+  maj = obj$ref.observed
+  min = obj$observed.mean
+  cfc = obj$estimated.mean
   cfc.err = 0 # this is actually for the unexplained variance, not estimated
   #mean --> sqrt(out$unexp.disp.variance)*qnorm(1-alpha)
   #this needs to be fixed. For now, don't plot any error bars
