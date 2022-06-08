@@ -1,4 +1,4 @@
-devtools::load_all(path=r"(C:\Users\laffertyrm\Documents\work\PB\pbanalysis)")
+devtools::load_all(path="C:/Users/laffertyrm/Documents/work/PB/pbanalysis")
 pb.example("logistic")
 
 #test code for multinomial

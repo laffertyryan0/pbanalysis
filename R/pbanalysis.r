@@ -718,7 +718,7 @@ plot.pb <- function(obj){
       plotdf = rbind(plotdf,
                      cbind(rc,rep("DG Counterfactual",dim(cfc)[1]),
                            rownames(cfc),
-                           cfc[,i],cfc[,i]-cfc.err[,i],cfc[,i]+cfc.err[,i],0)
+                           cfc[,i],cfc[,i],0)  #no error bars for now
       )
   }
   colnames(plotdf) <- c("race_comparison","quantity","outcome",
