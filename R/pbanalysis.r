@@ -702,7 +702,6 @@ plot.pb <- function(obj){
   #mean --> sqrt(out$unexp.disp.variance)*qnorm(1-alpha)
   #this needs to be fixed. For now, don't plot any error bars
 
-
   plotdf = NULL
   for(i in 1:dim(min)[2]){
     rc = colnames(min)[i]
@@ -714,11 +713,11 @@ plot.pb <- function(obj){
                    cbind(rc,rep("DG Actual",dim(min)[1]),
                          rownames(min),
                          min[,i],min[,1],min[,1],0))
-    ci.width =
-      plotdf = rbind(plotdf,
+
+    plotdf = rbind(plotdf,
                      cbind(rc,rep("DG Counterfactual",dim(cfc)[1]),
                            rownames(cfc),
-                           cfc[,i],cfc[,i],0)  #no error bars for now
+                           cfc[,i],cfc[,i],0,0)  #no error bars for now
       )
   }
   colnames(plotdf) <- c("race_comparison","quantity","outcome",
