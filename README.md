@@ -3,18 +3,19 @@ A package for implementing the Peters-Belson method for disparities research. Su
 
 ## What is the Peters-Belson method
 The Peters-Belson method is a technique for analyzing racial/gender/other disparities by determining what outcomes we would expect for members of a disadvantaged group, 
-*had they been* members of the reference (advantaged) group. These expected outcomes are then compared with the true outcomes for the disadvantaged group, to assess 
-whether any unfair differences exist. To determine the expected outcomes, we first fit a model based only on data from members of the reference group. Then, using 
+*had they been* members of the reference (advantaged) group. These expected outcomes are then compared with the observed outcomes for the disadvantaged group, to assess 
+"explained disparity" by the covariates and "unexplained disparity" which is not addressed by the covaraites. To determine the expected outcomes, we first fit a model based only on data from members of the reference group. Then, using 
 the reference group model, we predict the response for each member of the disadvantaged group using the covariates for that member. 
 
 See https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4630005/
 
 ## How to use this package
-The `pbanalysis` package can be used to estimate the amount of unexplained disparity between a reference group and several disadvantaged groups (DG). In addition, 
-the approximate variance of the unexplained disparity is estimated using Taylor linearization. Using the normal approximation, one can use the estimated variance to
-compute confidence bounds for the unexplained disparity. 
+The `pbanalysis` package can be used to estimate the amount of unexplained disparity between a reference group and several disadvantaged groups (DG).
 
-To use this package, one must first call the `pb.fit` function, which is a constructor for an S3 object of class "pb". The `pb.fit` function takes several arguments, which 
+The package  implements PB-anlaysis for quantile regression model by Hong et al. (2022+).
+
+
+Additionally, it can be used for PB-analyis for linear regression, logisitc regression (Li et al. xxx), and proprotional hazards models. To use this package, one must first call the `pb.fit` function, which is a constructor for an S3 object of class "pb". The `pb.fit` function takes several arguments, which 
 are outlined in the manual for this package. There are several model families to choose from. These include linear regression (gaussian family), multinomial 
 logistic regression (multinomial family), and (partial) proportional odds model (ordinal family). If the ordinal family is chosen, one has the option to specify an 
 additional argument, `prop.odds.fail`, which is a list of covariates for which the proportional odds assumption may not necessarily hold. If this argument is left empty,
